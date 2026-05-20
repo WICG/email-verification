@@ -132,6 +132,8 @@ While this specific proposal focuses on requesting them through autocomplete, we
 
 While not directly covered in the architecture described in this doc, we expect that the same UX (a browser mediated email selector) and architectural principles (e.g permission prompts) are going to apply to the Request User Info WebAuthn API [https://github.com/w3c/webauthn/blob/main/explainers/request-user-info.md](https://github.com/w3c/webauthn/blob/main/explainers/request-user-info.md) :
 
+<img width="1152" height="864" alt="Email Verification Tokens (EVTs) (6)" src="https://github.com/user-attachments/assets/98c79248-5cb4-478d-9d2c-c8a80760bb99" />
+
 Outside of the Passkey Creation API, some have raised whether EVT could diminish the role that passkeys will have going forward (as a first factor), and it is our opinion that (a) it is too soon to tell but if we had to make a prediction (b) it is unlikely that EVT is going to have any negative effect in our ability to move users away from passwords.
 
 It is plausible that EVTs make passwords (and, hence, passkeys) altogether less useful by making login entirely done via (a progressively more efficient) email verification, and while we acknowledge that that’s a viable pattern currently deployed in small / niche websites, we believe that EVTs is just going to be an extra tool in the toolbox that will coexist symbiotically with passkeys.
