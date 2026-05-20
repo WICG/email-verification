@@ -17,15 +17,19 @@ The only delta between what's already being shared and what this feature adds is
 
 ## [2.3. Do the features in your specification expose personal information, personally-identifiable information (PII), or information derived from either?](https://www.w3.org/TR/security-privacy-questionnaire/#personal-data)
 
-No.
+Yes.
 
-This feature auguments an already existing feature, namely, the ability to provide email addresses to websites (via `<input>` boxes and `autocomplete`), which does consistitute personally-identifiable information, with cryptographic proofs, but doesn't in and of itself introduce additional personally-identifiable information.
+This feature auguments an already existing feature, namely, the ability to provide email addresses to websites (via `<input>` boxes and `autocomplete`), which does consistitute personally-identifiable information, with the addition of cryptographic proofs.
+
+The cryptographic proof is only shared when the email autocomlete is also shared, so the delta in PII is the cryptographic proof.
 
 It is the case that issuers could embed extra information in the cryptographic proof (e.g. generating signatures that contain extra information it), but we expect this to be the least convenient communication channel in comparison to alternatives (e.g. data that is already shared via [webfinger](https://en.wikipedia.org/wiki/WebFinger)).
 
 ## [2.4. How do the features in your specification deal with sensitive information?](https://www.w3.org/TR/security-privacy-questionnaire/#sensitive-data)
 
 In addition to personally-identifiable information, one meaningful bit of information that also gets shared with the websites is that the user is logged in to their email provider.
+
+The main way we deal with the extra bit of information is asking the user for [explicit permission](https://github.com/samuelgoto/email-verification-protocol/blob/main/README.md#permission-model). We are still iterating on how often and how granular (e.g. per email? per RP? per presentation? per email provider?) the permission is, but we do expect to have some.
 
 That's not necessarily an "extra" bit of information considering the alternative (which is to prove ownership by proving access, and hence, proving that you are logged in to your email provider), but it could be an extra bit of information outside of the intended purpose of the feature (to verify email addresses).
 
@@ -55,7 +59,7 @@ We might extend the protocol to support [talking to native mobile applications](
 
 ## [2.8. Does this specification allow an origin to send data to the underlying platform?](https://www.w3.org/TR/security-privacy-questionnaire/#send-to-platform)
 
-No, with the exception of the answer to the question above, which would allow an origin to get data from native applications on the underlying platform.
+No.
 
 ## [2.9. Do features in this specification enable access to device sensors?](https://www.w3.org/TR/security-privacy-questionnaire/#sensor-data)
 
@@ -81,11 +85,7 @@ https://github.com/samuelgoto/email-verification-protocol#permission-model
 
 ## [2.14. How does this specification distinguish between behavior in first-party and third-party contexts?](https://www.w3.org/TR/security-privacy-questionnaire/#first-third-party)
 
-This specification makes a credentialed request to an issuer/email provider while on a cross-site website, similar to how [FedCM](https://w3c-fedid.github.io/FedCM/) works.
-
-In the same formulation as FedCM, the request is entirely mediated and controlled by the browser, so contains all of the necessary constraints to classify it as a first-party context.
-
-For example, the credential request (a) does not reveal who the website is (outside of timing attacks) and (b) uses a special [`Sec-Fetch-Dest: email-verification`](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-invalid-sec-fetch-dest-head) header that guarantees to the server that this request isn't being made in a third party context (such as `fetch()`).
+We are disabling this feature in third party contexts (e.g. iframes). We might look into enabling it with the right permission policies, but we haven't gotten that far yet.
 
 ## [2.15. How do the features in this specification work in the context of a browser’s Private Browsing or Incognito mode?](https://www.w3.org/TR/security-privacy-questionnaire/#private-browsing)
 
@@ -107,7 +107,9 @@ No.
 
 ## [2.20. Does your spec define when and how new kinds of errors should be raised?](https://www.w3.org/TR/security-privacy-questionnaire/#error-handling)
 
-[Yes](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-error-responses).
+There are a series of errors that can happen as a result of [issuing tokens](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-error-responses), but that doesn't get exposed to websites.
+
+Websites either get an EVT or don't in the form submission, and have to degrade gracefully (to the status quo) when the token isn't provided.
 
 ## [2.21. Does your feature allow sites to learn about the user’s use of assistive technology?](https://www.w3.org/TR/security-privacy-questionnaire/#accessibility-devices)
 
