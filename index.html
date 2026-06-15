@@ -766,6 +766,13 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
      <a href="#intro"><span class="secno">1</span> <span class="content">Introduction</span></a>
      <ol class="toc">
       <li><a href="#overview"><span class="secno">1.1</span> <span class="content">Protocol Overview</span></a>
+      <li>
+       <a href="#example"><span class="secno">1.2</span> <span class="content">Example</span></a>
+       <ol class="toc">
+        <li><a href="#example-form"><span class="secno">1.2.1</span> <span class="content">Verifier HTML Form</span></a>
+        <li><a href="#example-interaction"><span class="secno">1.2.2</span> <span class="content">Browser Interaction</span></a>
+        <li><a href="#example-submission"><span class="secno">1.2.3</span> <span class="content">Form Submission</span></a>
+       </ol>
      </ol>
     <li>
      <a href="#html-extensions"><span class="secno">2</span> <span class="content">HTML Extensions</span></a>
@@ -778,23 +785,9 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
      <ol class="toc">
       <li><a href="#autofill-handler"><span class="secno">3.1</span> <span class="content">Handling Autofill Selection</span></a>
       <li><a href="#form-submission"><span class="secno">3.2</span> <span class="content">Form Submission Integration</span></a>
-      <li><a href="#algo-discovery"><span class="secno">3.3</span> <span class="content"><span>Issuer Discovery</span></span></a>
-      <li><a href="#algo-accounts-validation"><span class="secno">3.4</span> <span class="content"><span>Accounts Validation</span></span></a>
-      <li><a href="#algo-issuance"><span class="secno">3.5</span> <span class="content"><span>EVT Issuance</span></span></a>
-      <li><a href="#algo-key-binding"><span class="secno">3.6</span> <span class="content"><span>Key Binding</span></span></a>
+      <li><a href="#algo-accounts-validation"><span class="secno">3.3</span> <span class="content"><span>Accounts Validation</span></span></a>
      </ol>
-    <li>
-     <a href="#http-api"><span class="secno">4</span> <span class="content">HTTP API</span></a>
-     <ol class="toc">
-      <li><a href="#dns-delegation"><span class="secno">4.1</span> <span class="content">DNS Delegation</span></a>
-      <li><a href="#well-known-config"><span class="secno">4.2</span> <span class="content">Well-Known Configuration</span></a>
-      <li>
-       <a href="#issuance-endpoint"><span class="secno">4.3</span> <span class="content">Token Issuance Endpoint</span></a>
-       <ol class="toc">
-        <li><a href="#issuance-request"><span class="secno">4.3.1</span> <span class="content">Issuance Request</span></a>
-        <li><a href="#issuance-response"><span class="secno">4.3.2</span> <span class="content">Issuance Response</span></a>
-       </ol>
-     </ol>
+    <li><a href="#verifier-processing"><span class="secno">4</span> <span class="content">Verifier Processing Model</span></a>
     <li>
      <a href="#security-privacy"><span class="secno">5</span> <span class="content">Security and Privacy Considerations</span></a>
      <ol class="toc">
@@ -834,7 +827,7 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
    <p>Historically, verifying email addresses during account creation, sign-in, or account recovery has relied on manual, out-of-band mechanisms. A typical flow involves a website sending a one-time passcode (OTP) or a "magic link" to the user’s email address. The user must then navigate to their email inbox, retrieve the code or click the link, and return to the website to prove ownership.</p>
    <p>This process introduces significant friction, impacting user experience and conversion rates. Furthermore, it is vulnerable to phishing attacks, where a malicious site can trick a user into providing the OTP.</p>
    <p>The Email Verification Protocol (EVP) introduces a browser-mediated mechanism to verify email ownership cryptographically. By leveraging an active session between the user and their email provider (the issuer), the browser can request a cryptographically signed Email Verification Token (EVT) and present it to the website (the verifier).</p>
-   <p>This specification defines the HTML extensions used by relying parties to request EVTs, the client-side browser behavior to discover issuers and acquire tokens, and the HTTP APIs that issuers must implement.</p>
+   <p>This specification defines the HTML extensions used by verifiers to request EVTs, and the client-side browser behavior to coordinate with issuers to acquire tokens.</p>
    <h3 class="heading settled" data-level="1.1" id="overview"><span class="secno">1.1. </span><span class="content">Protocol Overview</span><a class="self-link" href="#overview"></a></h3>
    <p>The protocol involves three main parties:</p>
    <ul>
@@ -848,7 +841,7 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
    <p>A typical flow consists of the following steps:</p>
    <ol>
     <li data-md>
-     <p><strong>Login</strong>: The user logs in to their email provider. The provider updates the browser’s login status (using the Login Status API).</p>
+     <p><strong>Login</strong>: The user logs in to their email provider. The provider updates the browser’s login status to <a href="https://w3c-fedid.github.io/login-status/#logged-in">logged-in</a> (using the <a data-link-type="biblio" href="#biblio-login-status" title="Login Status API">Login Status API</a>).</p>
     <li data-md>
      <p><strong>Request</strong>: The verifier’s website includes a hidden input field with <code>autocomplete="email-verification-token"</code> and a <code>nonce</code> attribute.</p>
     <li data-md>
@@ -860,6 +853,46 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
     <li data-md>
      <p><strong>Verification</strong>: The verifier verifies the EVT and KB-JWT to complete the verification.</p>
    </ol>
+   <h3 class="heading settled" data-level="1.2" id="example"><span class="secno">1.2. </span><span class="content">Example</span><a class="self-link" href="#example"></a></h3>
+   <p>This section is non-normative.</p>
+   <p>Consider a verifier website <code>https://rp.example</code> that wants to verify a user’s email address during sign-up.</p>
+   <h4 class="heading settled" data-level="1.2.1" id="example-form"><span class="secno">1.2.1. </span><span class="content">Verifier HTML Form</span><a class="self-link" href="#example-form"></a></h4>
+   <p>The verifier includes a standard email input and a hidden input for the Email Verification Token (EVT), with <code>autocomplete="email-verification-token"</code> and a unique <code>nonce</code>:</p>
+<pre class="highlight language-html"><c- p>&lt;</c-><c- f>form</c-> <c- e>action</c-><c- o>=</c-><c- s>"/signup"</c-> <c- e>method</c-><c- o>=</c-><c- s>"post"</c-><c- p>></c->
+  <c- p>&lt;</c-><c- f>label</c-> <c- e>for</c-><c- o>=</c-><c- s>"email"</c-><c- p>></c->Email address:<c- p>&lt;/</c-><c- f>label</c-><c- p>></c->
+  <c- p>&lt;</c-><c- f>input</c-> <c- e>type</c-><c- o>=</c-><c- s>"email"</c-> <c- e>id</c-><c- o>=</c-><c- s>"email"</c-> <c- e>name</c-><c- o>=</c-><c- s>"email"</c-> <c- e>autocomplete</c-><c- o>=</c-><c- s>"email"</c-><c- p>></c->
+
+  <c- d>&lt;!-- EVP hidden input --></c->
+  <c- p>&lt;</c-><c- f>input</c-> <c- e>type</c-><c- o>=</c-><c- s>"hidden"</c-> <c- e>name</c-><c- o>=</c-><c- s>"evt"</c-> 
+         <c- e>autocomplete</c-><c- o>=</c-><c- s>"email-verification-token"</c-> 
+         <c- e>nonce</c-><c- o>=</c-><c- s>"xyz123456789"</c-><c- p>></c->
+
+  <c- p>&lt;</c-><c- f>button</c-> <c- e>type</c-><c- o>=</c-><c- s>"submit"</c-><c- p>></c->Sign Up<c- p>&lt;/</c-><c- f>button</c-><c- p>></c->
+<c- p>&lt;/</c-><c- f>form</c-><c- p>></c->
+</pre>
+   <h4 class="heading settled" data-level="1.2.2" id="example-interaction"><span class="secno">1.2.2. </span><span class="content">Browser Interaction</span><a class="self-link" href="#example-interaction"></a></h4>
+   <ol>
+    <li data-md>
+     <p>When the user focuses the <code>email</code> input, the browser suggests autofill email addresses (e.g., <code>user@email.example</code>).</p>
+    <li data-md>
+     <p>The user selects <code>user@email.example</code>.</p>
+    <li data-md>
+     <p>The browser performs issuer discovery (finding <code>email.example</code> delegates to <code>issuer.example</code>), validates the user’s session with the issuer, and shows a prompt:
+<strong>Verify your email?</strong>
+Do you want to share a verified token for <code>user@email.example</code> with <code>rp.example</code>?
+[Allow] [Deny]</p>
+    <li data-md>
+     <p>If the user selects "Allow", the browser fetches the EVT from <code>issuer.example</code>, binds it to <code>rp.example</code> and the nonce <code>xyz123456789</code>, and stores the bound token.</p>
+   </ol>
+   <h4 class="heading settled" data-level="1.2.3" id="example-submission"><span class="secno">1.2.3. </span><span class="content">Form Submission</span><a class="self-link" href="#example-submission"></a></h4>
+   <p>When the user submits the form, the browser automatically injects the bound token into the hidden input field. The verifier receives the following POST payload:</p>
+<pre class="highlight language-http"><c- nf>POST</c-> <c- nn>/signup</c-> <c- kr>HTTP</c-><c- o>/</c-><c- m>1.1</c->
+<c- e>Host</c-><c- o>:</c-> <c- l>rp.example</c->
+<c- e>Content-Type</c-><c- o>:</c-> <c- l>application/x-www-form-urlencoded</c->
+
+<c- f>email</c-><c- o>=</c-><c- s>user%40email.example</c-><c- p>&amp;</c-><c- f>evt</c-><c- o>=</c-><c- s>eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnQrand0In0...</c->
+</pre>
+   <p>The verifier then parses and verifies the <code>evt</code> token (verifying the signature, origin <code>rp.example</code>, nonce <code>xyz123456789</code>, and matching the email <code>user@email.example</code>) to complete the registration without needing to send a verification email.</p>
    <h2 class="heading settled" data-level="2" id="html-extensions"><span class="secno">2. </span><span class="content">HTML Extensions</span><a class="self-link" href="#html-extensions"></a></h2>
    <p>This specification extends the HTML standard <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a> by introducing a new autofill field name and extending the use of the <code>nonce</code> attribute.</p>
    <h3 class="heading settled" data-level="2.1" id="autocomplete-evt"><span class="secno">2.1. </span><span class="content">The <code>email-verification-token</code> Autofill Value</span><a class="self-link" href="#autocomplete-evt"></a></h3>
@@ -873,7 +906,7 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
    <p>The value of the <code>nonce</code> attribute MUST be unique for each page rendering.</p>
    <h2 class="heading settled" data-level="3" id="processing-model"><span class="secno">3. </span><span class="content">Browser Processing Model</span><a class="self-link" href="#processing-model"></a></h2>
    <h3 class="heading settled" data-level="3.1" id="autofill-handler"><span class="secno">3.1. </span><span class="content">Handling Autofill Selection</span><a class="self-link" href="#autofill-handler"></a></h3>
-   <p>When the user selects an email address <var>email</var> from the user agent’s autofill suggestions for an <code>&lt;input></code> element within a <code>&lt;form></code> <var>form</var>:</p>
+   <p>When the user selects an email address <var>email</var> from the user agent’s autofill suggestions for an <code>&lt;input></code> element <var>emailInput</var> within a <code>&lt;form></code> <var>form</var>:</p>
    <ol>
     <li data-md>
      <p>Let <var>evtInput</var> be the first <code>&lt;input></code> element in <var>form</var> that has an <code>autocomplete</code> attribute whose value is <code>email-verification-token</code>.</p>
@@ -884,10 +917,20 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
     <li data-md>
      <p>If <var>nonce</var> is empty, terminate these steps.</p>
     <li data-md>
+     <p>Set <var>form</var>’s EVP state to:</p>
+     <ul>
+      <li data-md>
+       <p><code>email</code>: <var>email</var></p>
+      <li data-md>
+       <p><code>inputElement</code>: <var>emailInput</var></p>
+      <li data-md>
+       <p><code>token</code>: null</p>
+     </ul>
+    <li data-md>
      <p>In the background, perform the following steps:</p>
      <ol>
       <li data-md>
-       <p>Let <var>issuer</var> be the result of performing <a data-link-type="dfn" href="#issuer-discovery" id="ref-for-issuer-discovery">Issuer Discovery</a> on <var>email</var>.</p>
+       <p>Let <var>issuer</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery">issuer discovery</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>email</var>.</p>
       <li data-md>
        <p>If <var>issuer</var> is null, terminate these steps.</p>
       <li data-md>
@@ -895,94 +938,68 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
       <li data-md>
        <p>If <var>accountMatch</var> is false, terminate these steps.</p>
       <li data-md>
-       <p>Let <var>evt</var> be the result of performing <a data-link-type="dfn" href="#evt-issuance" id="ref-for-evt-issuance">EVT Issuance</a> for <var>email</var> from <var>issuer</var>.</p>
+       <p>Show a user prompt asking for permission to verify the email address <var>email</var> with <var>issuer</var>.</p>
+      <li data-md>
+       <p>If the user denies permission, terminate these steps.</p>
+      <li data-md>
+       <p>Let <var>evt</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-evt-issuance">EVT issuance</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> for <var>email</var> from <var>issuer</var>.</p>
       <li data-md>
        <p>If <var>evt</var> is null, terminate these steps.</p>
       <li data-md>
-       <p>Let <var>kbEvt</var> be the result of performing <a data-link-type="dfn" href="#key-binding" id="ref-for-key-binding">Key Binding</a> on <var>evt</var> with <var>nonce</var> and the origin of the document.</p>
+       <p>Let <var>kbEvt</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation">key-binding creation</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>evt</var> with <var>nonce</var> and the origin of the document.</p>
       <li data-md>
-       <p>Store <var>kbEvt</var> associated with <var>form</var>.</p>
+       <p>Let <var>state</var> be <var>form</var>’s EVP state.</p>
+      <li data-md>
+       <p>If <var>state</var> is not null and <var>state</var>’s <code>email</code> is case-insensitively equal to <var>email</var>:</p>
+       <ol>
+        <li data-md>
+         <p>Set <var>state</var>’s <code>token</code> to <var>kbEvt</var>.</p>
+       </ol>
      </ol>
    </ol>
    <h3 class="heading settled" data-level="3.2" id="form-submission"><span class="secno">3.2. </span><span class="content">Form Submission Integration</span><a class="self-link" href="#form-submission"></a></h3>
    <p>When a <code>&lt;form></code> <var>form</var> is submitted:</p>
    <ol>
     <li data-md>
-     <p>If there is a stored <var>kbEvt</var> associated with <var>form</var>:</p>
-     <ol start="2">
+     <p>Let <var>state</var> be <var>form</var>’s EVP state.</p>
+    <li data-md>
+     <p>If <var>state</var> is null or <var>state</var>’s <code>token</code> is null, continue with standard form submission steps.</p>
+    <li data-md>
+     <p>Let <var>currentEmail</var> be the value of <var>state</var>’s <code>inputElement</code>.</p>
+    <li data-md>
+     <p>If <var>currentEmail</var> is case-insensitively equal to <var>state</var>’s <code>email</code>:</p>
+     <ol>
       <li data-md>
        <p>Let <var>evtInput</var> be the first <code>&lt;input></code> element in <var>form</var> that has an <code>autocomplete</code> attribute whose value is <code>email-verification-token</code>.</p>
       <li data-md>
        <p>If <var>evtInput</var> exists:</p>
        <ol>
         <li data-md>
-         <p>Set the value of <var>evtInput</var> to <var>kbEvt</var>.</p>
+         <p>Set the value of <var>evtInput</var> to <var>state</var>’s <code>token</code>.</p>
        </ol>
      </ol>
     <li data-md>
      <p>Continue with the standard form submission steps defined in <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a>.</p>
    </ol>
-   <h3 class="heading settled" data-level="3.3" id="algo-discovery"><span class="secno">3.3. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="issuer-discovery">Issuer Discovery</dfn></span><a class="self-link" href="#algo-discovery"></a></h3>
-   <p>Given an email address <var>email</var>, the user agent MUST perform the following steps to discover the issuer:</p>
-   <ol>
-    <li data-md>
-     <p>Let <var>domain</var> be the domain part of <var>email</var> (the substring following the <code>@</code> character).</p>
-    <li data-md>
-     <p>Perform a DNS TXT lookup for the hostname <code>_email-verification.</code> concatenated with <var>domain</var>.</p>
-    <li data-md>
-     <p>If the lookup fails, returns an error, or returns no records, return null.</p>
-    <li data-md>
-     <p>Let <var>record</var> be the text content of the returned TXT record.</p>
-    <li data-md>
-     <p>Parse <var>record</var> as a space-separated list of key-value pairs of the form <code>key=value</code>.</p>
-    <li data-md>
-     <p>If there is a key-value pair with key <code>iss</code>, return its value.</p>
-    <li data-md>
-     <p>Return null.</p>
-   </ol>
-   <h3 class="heading settled" data-level="3.4" id="algo-accounts-validation"><span class="secno">3.4. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="accounts-validation">Accounts Validation</dfn></span><a class="self-link" href="#algo-accounts-validation"></a></h3>
+   <h3 class="heading settled" data-level="3.3" id="algo-accounts-validation"><span class="secno">3.3. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="accounts-validation">Accounts Validation</dfn></span><a class="self-link" href="#algo-accounts-validation"></a></h3>
    <p>Given an email address <var>email</var> and an issuer domain <var>issuer</var>, the user agent MUST perform the following steps to validate the accounts:</p>
    <ol>
     <li data-md>
      <p>Check the login status of <var>issuer</var> using the Login Status API <a data-link-type="biblio" href="#biblio-login-status" title="Login Status API">[login-status]</a>.</p>
     <li data-md>
-     <p>If the status is "logged-out", return false.</p>
+     <p>If the status is <a href="https://w3c-fedid.github.io/login-status/#logged-out">logged-out</a>, return false.</p>
     <li data-md>
-     <p>Let <var>wellKnownUrl</var> be the URL <code>https://</code> concatenated with <var>issuer</var> and <code>/.well-known/web-identity</code>.</p>
+     <p>Let <var>wellKnown</var> be the result of fetching the <a href="https://w3c-fedid.github.io/FedCM/#well-known-file">well-known file</a> for <var>issuer</var> as defined in <a data-link-type="biblio" href="#biblio-fedcm" title="Federated Credential Management API">[fedcm]</a>.</p>
     <li data-md>
-     <p>Fetch <var>wellKnownUrl</var>:</p>
-     <ul>
-      <li data-md>
-       <p>The request MUST be uncredentialed (no cookies).</p>
-      <li data-md>
-       <p>The request MUST be a GET request.</p>
-     </ul>
+     <p>If <var>wellKnown</var> is null, return false.</p>
     <li data-md>
-     <p>If the fetch fails or the response status is not 200 OK, return false.</p>
-    <li data-md>
-     <p>Parse the response body as JSON.</p>
-    <li data-md>
-     <p>Let <var>accountsEndpoint</var> be the value of the <code>accounts_endpoint</code> member.</p>
+     <p>Let <var>accountsEndpoint</var> be the value of the <code>accounts_endpoint</code> member of <var>wellKnown</var>.</p>
     <li data-md>
      <p>If <var>accountsEndpoint</var> is not present or is not a valid URL, return false.</p>
     <li data-md>
-     <p>Fetch <var>accountsEndpoint</var>:</p>
-     <ul>
-      <li data-md>
-       <p>The request MUST be credentialed (include cookies for <var>issuer</var>).</p>
-      <li data-md>
-       <p>The request MUST include the header <code>Sec-Fetch-Dest: web-identity</code>.</p>
-      <li data-md>
-       <p>The request MUST be a GET request.</p>
-     </ul>
+     <p>Let <var>accounts</var> be the result of executing the <a href="https://w3c-fedid.github.io/FedCM/#fetch-accounts">fetch accounts</a> algorithm defined in <a data-link-type="biblio" href="#biblio-fedcm" title="Federated Credential Management API">[fedcm]</a> for <var>issuer</var> and <var>accountsEndpoint</var>.</p>
     <li data-md>
-     <p>If the fetch fails or the response status is not 200 OK, return false.</p>
-    <li data-md>
-     <p>Parse the response body as JSON.</p>
-    <li data-md>
-     <p>Let <var>accounts</var> be the value of the <code>accounts</code> member, which is expected to be a list of account objects.</p>
-    <li data-md>
-     <p>If <var>accounts</var> is not a list, return false.</p>
+     <p>If <var>accounts</var> is null or empty, return false.</p>
     <li data-md>
      <p>For each <var>account</var> in <var>accounts</var>:</p>
      <ol>
@@ -994,154 +1011,20 @@ A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed
     <li data-md>
      <p>Return false.</p>
    </ol>
-   <h3 class="heading settled" data-level="3.5" id="algo-issuance"><span class="secno">3.5. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="evt-issuance">EVT Issuance</dfn></span><a class="self-link" href="#algo-issuance"></a></h3>
-   <p>Given an email address <var>email</var> and an issuer domain <var>issuer</var>, the user agent MUST perform the following steps to obtain an EVT:</p>
+   <h2 class="heading settled" data-level="4" id="verifier-processing"><span class="secno">4. </span><span class="content">Verifier Processing Model</span><a class="self-link" href="#verifier-processing"></a></h2>
+   <p>When a verifier receives a submitted form containing an email address <var>email</var> and a bound token <var>boundToken</var> (from the input field with <code>autocomplete="email-verification-token"</code>):</p>
    <ol>
     <li data-md>
-     <p>Let <var>evtWellKnownUrl</var> be the URL <code>https://</code> concatenated with <var>issuer</var> and <code>/.well-known/email-verification</code>.</p>
+     <p>Perform the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification">token verification</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>boundToken</var> for the verifier’s origin and the expected nonce.</p>
     <li data-md>
-     <p>Fetch <var>evtWellKnownUrl</var>:</p>
-     <ul>
-      <li data-md>
-       <p>The request MUST be uncredentialed.</p>
-      <li data-md>
-       <p>The request MUST be a GET request.</p>
-     </ul>
+     <p>If the verification fails, fail verification.</p>
     <li data-md>
-     <p>If the fetch fails or the response status is not 200 OK, return null.</p>
+     <p>Let <var>verifiedEmail</var> be the email address extracted from the verified token.</p>
     <li data-md>
-     <p>Parse the response body as JSON.</p>
+     <p>If <var>verifiedEmail</var> is not case-insensitively equal to <var>email</var>, fail verification.</p>
     <li data-md>
-     <p>Let <var>issuanceEndpoint</var> be the value of the <code>issuance_endpoint</code> member.</p>
-    <li data-md>
-     <p>If <var>issuanceEndpoint</var> is not present or is not a valid URL, return null.</p>
-    <li data-md>
-     <p>Generate a new ephemeral asymmetric key pair <var>keyPair</var> (if one is not already associated with the session).</p>
-    <li data-md>
-     <p>Construct a JSON payload <var>payload</var> containing <code>{"email": |email|}</code>.</p>
-    <li data-md>
-     <p>Perform a POST request to <var>issuanceEndpoint</var>:</p>
-     <ul>
-      <li data-md>
-       <p>The request MUST be credentialed.</p>
-      <li data-md>
-       <p>The request body MUST be <var>payload</var>.</p>
-      <li data-md>
-       <p>The request MUST include <code>Content-Type: application/json</code>.</p>
-      <li data-md>
-       <p>The request MUST include <code>Sec-Fetch-Dest: email-verification</code>.</p>
-      <li data-md>
-       <p>The request MUST be signed using HTTP Message Signatures <a data-link-type="biblio" href="#biblio-rfc9421" title="HTTP Message Signatures">[RFC9421]</a> using the private key of <var>keyPair</var>, including the signature in the <code>Signature</code> and <code>Signature-Input</code> headers, and the public key in the <code>Signature-Key</code> header.</p>
-     </ul>
-    <li data-md>
-     <p>If the response status is 200 OK:</p>
-     <ol>
-      <li data-md>
-       <p>Parse the response body as JSON.</p>
-      <li data-md>
-       <p>Let <var>evt</var> be the value of the <code>issuance_token</code> member.</p>
-      <li data-md>
-       <p>Return <var>evt</var>.</p>
-     </ol>
-    <li data-md>
-     <p>Return null.</p>
+     <p>Otherwise, verification succeeds.</p>
    </ol>
-   <h3 class="heading settled" data-level="3.6" id="algo-key-binding"><span class="secno">3.6. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="key-binding">Key Binding</dfn></span><a class="self-link" href="#algo-key-binding"></a></h3>
-   <p>Given an issuance token <var>evt</var>, a nonce <var>nonce</var>, and an origin <var>verifierOrigin</var>:</p>
-   <ol>
-    <li data-md>
-     <p>Let <var>keyPair</var> be the key pair used in the issuance request.</p>
-    <li data-md>
-     <p>Create a JWT payload containing:</p>
-     <ul>
-      <li data-md>
-       <p><code>aud</code>: <var>verifierOrigin</var></p>
-      <li data-md>
-       <p><code>nonce</code>: <var>nonce</var></p>
-      <li data-md>
-       <p><code>iat</code>: Current time.</p>
-      <li data-md>
-       <p><code>exp</code>: Current time + 5 minutes.</p>
-     </ul>
-    <li data-md>
-     <p>Sign the JWT payload with the private key of <var>keyPair</var> to create the Key-Binding JWT <var>kbJwt</var>.</p>
-    <li data-md>
-     <p>Return the concatenation of <var>evt</var>, the character <code>~</code>, and <var>kbJwt</var>.</p>
-   </ol>
-   <h2 class="heading settled" data-level="4" id="http-api"><span class="secno">4. </span><span class="content">HTTP API</span><a class="self-link" href="#http-api"></a></h2>
-   <p>Issuers MUST implement the following HTTP endpoints and DNS records to support the Email Verification Protocol.</p>
-   <h3 class="heading settled" data-level="4.1" id="dns-delegation"><span class="secno">4.1. </span><span class="content">DNS Delegation</span><a class="self-link" href="#dns-delegation"></a></h3>
-   <p>To associate an email domain with an EVP issuer, the domain owner MUST publish a DNS TXT record at the subdomain <code>_email-verification</code> of the email domain.</p>
-   <p>The TXT record MUST contain a space-separated list of attributes. The following attribute is defined:</p>
-   <ul>
-    <li data-md>
-     <p><code>iss</code>: The domain of the authoritative EVP issuer.</p>
-   </ul>
-   <p>Example DNS TXT record for <code>example.com</code>:</p>
-<pre>_email-verification.example.com. IN TXT "iss=accounts.example.com"
-</pre>
-   <h3 class="heading settled" data-level="4.2" id="well-known-config"><span class="secno">4.2. </span><span class="content">Well-Known Configuration</span><a class="self-link" href="#well-known-config"></a></h3>
-   <p>The issuer MUST expose metadata at the following well-known URL:
-<code>https://{issuer}/.well-known/email-verification</code></p>
-   <p>The response MUST be a JSON object containing the following members:</p>
-   <ul>
-    <li data-md>
-     <p><dfn class="dfn-paneled idl-code" data-dfn-for="email-verification-metadata" data-dfn-type="dict-member" data-export id="dom-email-verification-metadata-issuance_endpoint"><code>issuance_endpoint</code></dfn>: The URL of the token issuance endpoint.</p>
-    <li data-md>
-     <p><dfn class="dfn-paneled idl-code" data-dfn-for="email-verification-metadata" data-dfn-type="dict-member" data-export id="dom-email-verification-metadata-signing_alg_values_supported"><code>signing_alg_values_supported</code></dfn>: A list of JSON Web Algorithm (JWA) <a data-link-type="biblio" href="#biblio-rfc7518" title="JSON Web Algorithms (JWA)">[RFC7518]</a> signing algorithms supported by the issuer for signing EVTs.</p>
-   </ul>
-   <p>Example response:</p>
-<pre class="highlight language-json"><c- p>{</c->
-  <c- f>"issuance_endpoint"</c-><c- p>:</c-> <c- u>"https://accounts.example.com/email-verification/issuance"</c-><c- p>,</c->
-  <c- f>"signing_alg_values_supported"</c-><c- p>:</c-> <c- p>[</c-><c- u>"EdDSA"</c-><c- p>]</c->
-<c- p>}</c->
-</pre>
-   <h3 class="heading settled" data-level="4.3" id="issuance-endpoint"><span class="secno">4.3. </span><span class="content">Token Issuance Endpoint</span><a class="self-link" href="#issuance-endpoint"></a></h3>
-   <p>The token issuance endpoint (defined by <code>issuance_endpoint</code> in the well-known configuration) is used by the User Agent to request an EVT.</p>
-   <p>The endpoint MUST support POST requests.</p>
-   <h4 class="heading settled" data-level="4.3.1" id="issuance-request"><span class="secno">4.3.1. </span><span class="content">Issuance Request</span><a class="self-link" href="#issuance-request"></a></h4>
-   <p>The request MUST include:</p>
-   <ul>
-    <li data-md>
-     <p><code>Content-Type: application/json</code></p>
-    <li data-md>
-     <p><code>Sec-Fetch-Dest: email-verification</code></p>
-    <li data-md>
-     <p>A JSON body containing:</p>
-     <ul>
-      <li data-md>
-       <p><code>email</code>: The email address to verify.</p>
-     </ul>
-    <li data-md>
-     <p>Cookies establishing the user’s session with the issuer.</p>
-    <li data-md>
-     <p>HTTP Message Signature <a data-link-type="biblio" href="#biblio-rfc9421" title="HTTP Message Signatures">[RFC9421]</a> binding the request to the client’s ephemeral key.</p>
-   </ul>
-   <p>Example request:</p>
-<pre class="highlight language-http"><c- nf>POST</c-> <c- nn>/email-verification/issuance</c-> <c- kr>HTTP</c-><c- o>/</c-><c- m>1.1</c->
-<c- e>Host</c-><c- o>:</c-> <c- l>accounts.example.com</c->
-<c- e>Cookie</c-><c- o>:</c-> <c- l>session=xyz123</c->
-<c- e>Content-Type</c-><c- o>:</c-> <c- l>application/json</c->
-<c- e>Sec-Fetch-Dest</c-><c- o>:</c-> <c- l>email-verification</c->
-<c- e>Signature-Input</c-><c- o>:</c-> <c- l>sig=("@method" "@authority" "@path" "cookie" "signature-key");created=1692345600</c->
-<c- e>Signature</c-><c- o>:</c-> <c- l>sig=:MEQCIHd8Y8qYKm5e3dV8y....:</c->
-<c- e>Signature-Key</c-><c- o>:</c-> <c- l>sig=hwk; kty="OKP"; crv="Ed25519"; x="JrQLj5P_89iXES9-vFgrIy29clF9CC_oPPsw3c5D0bs"</c->
-
-<c- p>{</c-><c- f>"email"</c-><c- p>:</c-><c- u>"user@example.com"</c-><c- p>}</c->
-</pre>
-   <h4 class="heading settled" data-level="4.3.2" id="issuance-response"><span class="secno">4.3.2. </span><span class="content">Issuance Response</span><a class="self-link" href="#issuance-response"></a></h4>
-   <p>The response MUST be a JSON object containing:</p>
-   <ul>
-    <li data-md>
-     <p><code>issuance_token</code>: The issued EVT (string).</p>
-   </ul>
-   <p>The EVT itself is typically signed by the issuer. The format of the EVT is defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a>.</p>
-   <p>Example response:</p>
-<pre class="highlight language-http"><c- kr>HTTP</c-><c- o>/</c-><c- m>1.1</c-> <c- m>200</c-> <c- ne>OK</c->
-<c- e>Content-Type</c-><c- o>:</c-> <c- l>application/json</c->
-
-<c- p>{</c-><c- f>"issuance_token"</c-><c- p>:</c-><c- u>"eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnQrand0In0..."</c-><c- p>}</c->
-</pre>
    <h2 class="heading settled" data-level="5" id="security-privacy"><span class="secno">5. </span><span class="content">Security and Privacy Considerations</span><a class="self-link" href="#security-privacy"></a></h2>
    <h3 class="heading settled" data-level="5.1" id="privacy-considerations"><span class="secno">5.1. </span><span class="content">Privacy</span><a class="self-link" href="#privacy-considerations"></a></h3>
    <h4 class="heading settled" data-level="5.1.1" id="blinding-issuer"><span class="secno">5.1.1. </span><span class="content">Blinding the Issuer</span><a class="self-link" href="#blinding-issuer"></a></h4>
@@ -1223,35 +1106,28 @@ Furthermore, the issuer MUST match the email domain (unless delegated explicitly
   <h2 class="heading no-num no-ref settled" id="index"><span class="content">Index</span><a class="self-link" href="#index"></a></h2>
   <h3 class="heading no-num no-ref settled" id="index-defined-here"><span class="content">Terms defined by this specification</span><a class="self-link" href="#index-defined-here"></a></h3>
   <ul class="index">
-   <li><a href="#accounts-validation">Accounts Validation</a><span>, in § 3.4</span>
+   <li><a href="#accounts-validation">Accounts Validation</a><span>, in § 3.3</span>
    <li><a href="#email-verification-token">email-verification-token</a><span>, in § 2.1</span>
-   <li><a href="#evt-issuance">EVT Issuance</a><span>, in § 3.5</span>
-   <li><a href="#dom-email-verification-metadata-issuance_endpoint">issuance_endpoint</a><span>, in § 4.2</span>
-   <li><a href="#issuer-discovery">Issuer Discovery</a><span>, in § 3.3</span>
-   <li><a href="#key-binding">Key Binding</a><span>, in § 3.6</span>
    <li><a href="#element-attrdef-input-nonce">nonce</a><span>, in § 2.2</span>
-   <li><a href="#dom-email-verification-metadata-signing_alg_values_supported">signing_alg_values_supported</a><span>, in § 4.2</span>
   </ul>
   <h2 class="heading no-num no-ref settled" id="references"><span class="content">References</span><a class="self-link" href="#references"></a></h2>
   <h3 class="heading no-num no-ref settled" id="normative"><span class="content">Normative References</span><a class="self-link" href="#normative"></a></h3>
   <dl>
+   <dt id="biblio-evp-protocol">[EVP-Protocol]
+   <dd>Dick Hardt; Sam Goto. <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html"><cite>Email Verification Protocol (EVP) Backend</cite></a>. Internet-Draft. URL: <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html">https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html</a>
+   <dt id="biblio-fedcm">[FEDCM]
+   <dd>Nicolas Pena Moreno. <a href="https://w3c-fedid.github.io/FedCM/"><cite>Federated Credential Management API</cite></a>. URL: <a href="https://w3c-fedid.github.io/FedCM/">https://w3c-fedid.github.io/FedCM/</a>
    <dt id="biblio-login-status">[LOGIN-STATUS]
    <dd><a href="https://w3c-fedid.github.io/login-status/"><cite>Login Status API</cite></a>. Editor's Draft. URL: <a href="https://w3c-fedid.github.io/login-status/">https://w3c-fedid.github.io/login-status/</a>
    <dt id="biblio-rfc2119">[RFC2119]
    <dd>S. Bradner. <a href="https://datatracker.ietf.org/doc/html/rfc2119"><cite>Key words for use in RFCs to Indicate Requirement Levels</cite></a>. March 1997. Best Current Practice. URL: <a href="https://datatracker.ietf.org/doc/html/rfc2119">https://datatracker.ietf.org/doc/html/rfc2119</a>
-   <dt id="biblio-rfc9421">[RFC9421]
-   <dd>A. Backman, Ed.; J. Richer, Ed.; M. Sporny. <a href="https://www.rfc-editor.org/rfc/rfc9421"><cite>HTTP Message Signatures</cite></a>. February 2024. Proposed Standard. URL: <a href="https://www.rfc-editor.org/rfc/rfc9421">https://www.rfc-editor.org/rfc/rfc9421</a>
   </dl>
   <h3 class="heading no-num no-ref settled" id="informative"><span class="content">Non-Normative References</span><a class="self-link" href="#informative"></a></h3>
   <dl>
    <dt id="biblio-csp">[CSP]
    <dd>Mike West; Antonio Sartori. <a href="https://w3c.github.io/webappsec-csp/"><cite>Content Security Policy Level 3</cite></a>. URL: <a href="https://w3c.github.io/webappsec-csp/">https://w3c.github.io/webappsec-csp/</a>
-   <dt id="biblio-evp-protocol">[EVP-Protocol]
-   <dd>Dick Hardt; Sam Goto. <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html"><cite>Email Verification Protocol (EVP) Backend</cite></a>. Internet-Draft. URL: <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html">https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html</a>
    <dt id="biblio-html">[HTML]
    <dd>Anne van Kesteren; et al. <a href="https://html.spec.whatwg.org/multipage/"><cite>HTML Standard</cite></a>. Living Standard. URL: <a href="https://html.spec.whatwg.org/multipage/">https://html.spec.whatwg.org/multipage/</a>
-   <dt id="biblio-rfc7518">[RFC7518]
-   <dd>M. Jones. <a href="https://www.rfc-editor.org/rfc/rfc7518"><cite>JSON Web Algorithms (JWA)</cite></a>. May 2015. Proposed Standard. URL: <a href="https://www.rfc-editor.org/rfc/rfc7518">https://www.rfc-editor.org/rfc/rfc7518</a>
   </dl>
 <script>/* Boilerplate: script-dom-helper */
 "use strict";
@@ -1454,13 +1330,8 @@ function parseHTML(markup) {
 {
 let dfnPanelData = {
 "accounts-validation": {"dfnID":"accounts-validation","dfnText":"Accounts Validation","external":false,"refSections":[{"refs":[{"id":"ref-for-accounts-validation"}],"title":"3.1. Handling Autofill Selection"}],"url":"#accounts-validation"},
-"dom-email-verification-metadata-issuance_endpoint": {"dfnID":"dom-email-verification-metadata-issuance_endpoint","dfnText":"issuance_endpoint","external":false,"refSections":[],"url":"#dom-email-verification-metadata-issuance_endpoint"},
-"dom-email-verification-metadata-signing_alg_values_supported": {"dfnID":"dom-email-verification-metadata-signing_alg_values_supported","dfnText":"signing_alg_values_supported","external":false,"refSections":[],"url":"#dom-email-verification-metadata-signing_alg_values_supported"},
 "element-attrdef-input-nonce": {"dfnID":"element-attrdef-input-nonce","dfnText":"nonce","external":false,"refSections":[],"url":"#element-attrdef-input-nonce"},
 "email-verification-token": {"dfnID":"email-verification-token","dfnText":"email-verification-token","external":false,"refSections":[],"url":"#email-verification-token"},
-"evt-issuance": {"dfnID":"evt-issuance","dfnText":"EVT Issuance","external":false,"refSections":[{"refs":[{"id":"ref-for-evt-issuance"}],"title":"3.1. Handling Autofill Selection"}],"url":"#evt-issuance"},
-"issuer-discovery": {"dfnID":"issuer-discovery","dfnText":"Issuer Discovery","external":false,"refSections":[{"refs":[{"id":"ref-for-issuer-discovery"}],"title":"3.1. Handling Autofill Selection"}],"url":"#issuer-discovery"},
-"key-binding": {"dfnID":"key-binding","dfnText":"Key Binding","external":false,"refSections":[{"refs":[{"id":"ref-for-key-binding"}],"title":"3.1. Handling Autofill Selection"}],"url":"#key-binding"},
 };
 
 document.addEventListener("DOMContentLoaded", ()=>{
@@ -1850,9 +1721,6 @@ function genLinkingSyntaxes(dfn) {
 {
 let refsData = {
 "#accounts-validation": {"displayText":"accounts validation","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"accounts validation","type":"dfn","url":"#accounts-validation"},
-"#evt-issuance": {"displayText":"evt issuance","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"evt issuance","type":"dfn","url":"#evt-issuance"},
-"#issuer-discovery": {"displayText":"issuer discovery","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"issuer discovery","type":"dfn","url":"#issuer-discovery"},
-"#key-binding": {"displayText":"key binding","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"key binding","type":"dfn","url":"#key-binding"},
 };
 
 function mkRefHint(link, ref) {
