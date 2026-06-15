@@ -62,17 +62,17 @@ Step                                  Website              Browser              
                                          |                    |                    |
 3.4 Permission                           |           [Obtain permission]           |
                                          |                    |                    |
-3.5 Issuance Request                     |                    |-- POST /issuance ->|
+3.5 EVT Issuance                         |                    |<------ EVT --------|
                                          |                    |                    |
-3.6 EVT Creation                         |                    |              [Create EVT]
+3.6 KB Creation                          |              [Create KB-JWT]            |
                                          |                    |                    |
-3.7 EVT Issuance                         |                    |<------ EVT --------|
+3.7 EVT Verification                     |              [Verify EVT+KB]            |
                                          |                    |                    |
-3.8 KB Creation                          |              [Create KB-JWT]            |
+3.8 Form submission                     |         [Await form submission]         |
                                          |                    |                    |
-3.9 EVT Presentation                     |<----- EVT+KB ------|                    |
+3.9 EVT Presentation                    |<----- EVT+KB ------|                    |
                                          |                    |                    |
-4.1 EVT Verification                [Verify EVT+KB]             |                    |
+4.1 EVT Verification              [Verify EVT+KB]             |                    |
                                          |                    |                    |
                                          +                    +                    +
 ```
@@ -201,22 +201,35 @@ Signature-Key: sig=hwk; kty="OKP"; crv="Ed25519"; \
 {"email":"user@example.com"}
 ```
 
-## 3.6 EVT Creation
+The [issuance response](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-evt-issuance) is reponded with an `issuance_token` property:
 
-## 3.7 EVT Issuance
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: session=...; Secure; HttpOnly; SameSite=None
 
-## 3.8 KB Creation
+{"issuance_token":"eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnQrand0In0...~"}
+```
+
+## 3.6 KB Creation
 
 Once issued, the browser [binds the nonce](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation) and the audience to the EVT (binding both the origin of the website that the EVT is presented to as well as the dynamically generated nonce) and then.
 
+## 3.7 EVT+KB Verification
+
+Once the browser has a `EVT+KB` it performs a [verification](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification) to check that everything is alright before it can present it.
+
+## 3.8 Form submission
+
+Once the browser has a verified `EVT+KB` it await for form submission beofre it presents the EVT.
+
 ## 3.9 EVT Presentation
 
-The browser awaits for the `<form>` to be submitted, and when it does, it looks for an input with an `autocomplete="email-verification-token"` input field and sets its value before the `onsubmit` event is fired.
+Before the form gets submitted, the browser looks for an input with an `autocomplete="email-verification-token"` input field in the same `<form>` as the `<input type="email">` that was used and sets its `value` before the `onsubmit` event is fired.
 
 ## 4.1 EVT Verification
 
 Upon form submission, because the browser has filled the value of the `<input>` element with the EVT, the website’s server gets that value in the form submission HTTP handler and is then able to skip the manual verification step by performing an automated [token verification step](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification).
-
 
 # Activation Considerations
 
