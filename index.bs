@@ -1,0 +1,291 @@
+<pre class="metadata">
+Title: Email Verification Tokens
+Shortname: evp
+Level: 1
+Status: UD
+Group: wicg
+URL: https://samuelgoto.github.io/email-verification-protocol/
+Repository: WICG/email-verification-protocol
+!Authors: Sam Goto, Google https://google.com, goto@google.com
+!Authors: Dick Hardt, Hellō, dick.hardt@gmail.com
+Abstract: This document defines the Email Verification Protocol (EVP), which enables web applications to verify that a user controls an email address without sending a verification email. The protocol uses a three-party model where the browser intermediates between the verifier and an issuer, providing both improved user experience and privacy protection.
+Markup Shorthands: markdown yes
+</pre>
+
+# Introduction # {#intro}
+
+Historically, verifying email addresses during account creation, sign-in, or account recovery has relied on manual, out-of-band mechanisms. A typical flow involves a website sending a one-time passcode (OTP) or a "magic link" to the user's email address. The user must then navigate to their email inbox, retrieve the code or click the link, and return to the website to prove ownership.
+
+This process introduces significant friction, impacting user experience and conversion rates. Furthermore, it is vulnerable to phishing attacks, where a malicious site can trick a user into providing the OTP.
+
+The Email Verification Protocol (EVP) introduces a browser-mediated mechanism to verify email ownership cryptographically. By leveraging an active session between the user and their email provider (the issuer), the browser can request a cryptographically signed Email Verification Token (EVT) and present it to the website (the verifier).
+
+This specification defines the HTML extensions used by relying parties to request EVTs, the client-side browser behavior to discover issuers and acquire tokens, and the HTTP APIs that issuers must implement.
+
+## Protocol Overview ## {#overview}
+
+The protocol involves three main parties:
+*   The **Verifier**: The website requesting email verification.
+*   The **User Agent (UA)**: The browser intermediating the request.
+*   The **Issuer**: The email provider authoritative for the email address.
+
+A typical flow consists of the following steps:
+
+1.  **Login**: The user logs in to their email provider. The provider updates the browser's login status (using the Login Status API).
+2.  **Request**: The verifier's website includes a hidden input field with `autocomplete="email-verification-token"` and a `nonce` attribute.
+3.  **Discovery & Validation**: When the user selects an email address (e.g., via autofill), the UA discovers the authoritative issuer via DNS. The UA checks if the user has an active session with that issuer.
+4.  **Issuance**: The UA requests an EVT from the issuer.
+5.  **Binding & Presentation**: The UA binds the verifier's origin and nonce to the EVT, creating a Key-Bound JWT (KB-JWT), and fills it into the verifier's input field before form submission.
+6.  **Verification**: The verifier verifies the EVT and KB-JWT to complete the verification.
+
+# HTML Extensions # {#html-extensions}
+
+This specification extends the HTML standard [[HTML]] by introducing a new autofill field name and extending the use of the `nonce` attribute.
+
+## The `email-verification-token` Autofill Value ## {#autocomplete-evt}
+
+The <dfn export>email-verification-token</dfn> keyword is added to the list of autofill field names (specifically, detail tokens) defined in [[HTML]].
+
+When an `<input>` element has its `autocomplete` attribute set to `email-verification-token`, it indicates that the User Agent SHOULD attempt to fill this field with a cryptographically bound Email Verification Token (EVT) upon form submission, provided the user has selected and verified an email address in the same form.
+
+Typically, this keyword is used on `<input type="hidden">` elements.
+
+## The `nonce` Attribute on `input` Elements ## {#input-nonce}
+
+This specification extends the <dfn element-attr for="input" export>nonce</dfn> attribute, originally defined for `<script>` and `<style>` elements in [[HTML]] (and used in Content Security Policy [[CSP]]), to `<input>` elements.
+
+When present on an `<input>` element with `autocomplete="email-verification-token"`, the `nonce` attribute contains a server-side generated, cryptographically strong random value (a cryptographic nonce).
+
+This nonce is used to bind the resulting EVT to a specific form presentation, preventing replay attacks.
+
+The value of the `nonce` attribute MUST be unique for each page rendering.
+
+# Browser Processing Model # {#processing-model}
+
+## Handling Autofill Selection ## {#autofill-handler}
+
+When the user selects an email address |email| from the user agent's autofill suggestions for an `<input>` element within a `<form>` |form|:
+
+1.  Let |evtInput| be the first `<input>` element in |form| that has an `autocomplete` attribute whose value is `email-verification-token`.
+2.  If no such |evtInput| exists, terminate these steps.
+3.  Let |nonce| be the value of the `nonce` attribute of |evtInput|.
+4.  If |nonce| is empty, terminate these steps.
+5.  In the background, perform the following steps:
+    1.  Let |issuer| be the result of performing [=Issuer Discovery=] on |email|.
+    2.  If |issuer| is null, terminate these steps.
+    3.  Let |accountMatch| be the result of performing [=Accounts Validation=] on |email| with |issuer|.
+    4.  If |accountMatch| is false, terminate these steps.
+    5.  Let |evt| be the result of performing [=EVT Issuance=] for |email| from |issuer|.
+    6.  If |evt| is null, terminate these steps.
+    7.  Let |kbEvt| be the result of performing [=Key Binding=] on |evt| with |nonce| and the origin of the document.
+    8.  Store |kbEvt| associated with |form|.
+
+## Form Submission Integration ## {#form-submission}
+
+When a `<form>` |form| is submitted:
+
+1.  If there is a stored |kbEvt| associated with |form|:
+    2.  Let |evtInput| be the first `<input>` element in |form| that has an `autocomplete` attribute whose value is `email-verification-token`.
+    3.  If |evtInput| exists:
+        1.  Set the value of |evtInput| to |kbEvt|.
+2.  Continue with the standard form submission steps defined in [[HTML]].
+
+## <dfn>Issuer Discovery</dfn> ## {#algo-discovery}
+
+Given an email address |email|, the user agent MUST perform the following steps to discover the issuer:
+
+1.  Let |domain| be the domain part of |email| (the substring following the `@` character).
+2.  Perform a DNS TXT lookup for the hostname `_email-verification.` concatenated with |domain|.
+3.  If the lookup fails, returns an error, or returns no records, return null.
+4.  Let |record| be the text content of the returned TXT record.
+5.  Parse |record| as a space-separated list of key-value pairs of the form `key=value`.
+6.  If there is a key-value pair with key `iss`, return its value.
+7.  Return null.
+
+## <dfn>Accounts Validation</dfn> ## {#algo-accounts-validation}
+
+Given an email address |email| and an issuer domain |issuer|, the user agent MUST perform the following steps to validate the accounts:
+
+1.  Check the login status of |issuer| using the Login Status API [[!login-status]].
+2.  If the status is "logged-out", return false.
+3.  Let |wellKnownUrl| be the URL `https://` concatenated with |issuer| and `/.well-known/web-identity`.
+4.  Fetch |wellKnownUrl|:
+    *   The request MUST be uncredentialed (no cookies).
+    *   The request MUST be a GET request.
+5.  If the fetch fails or the response status is not 200 OK, return false.
+6.  Parse the response body as JSON.
+7.  Let |accountsEndpoint| be the value of the `accounts_endpoint` member.
+8.  If |accountsEndpoint| is not present or is not a valid URL, return false.
+9.  Fetch |accountsEndpoint|:
+    *   The request MUST be credentialed (include cookies for |issuer|).
+    *   The request MUST include the header `Sec-Fetch-Dest: web-identity`.
+    *   The request MUST be a GET request.
+10. If the fetch fails or the response status is not 200 OK, return false.
+11. Parse the response body as JSON.
+12. Let |accounts| be the value of the `accounts` member, which is expected to be a list of account objects.
+13. If |accounts| is not a list, return false.
+14. For each |account| in |accounts|:
+    1.  Let |accountEmail| be the value of the `email` member of |account|.
+    2.  If |accountEmail| is case-insensitively equal to |email|, return true.
+15. Return false.
+
+## <dfn>EVT Issuance</dfn> ## {#algo-issuance}
+
+Given an email address |email| and an issuer domain |issuer|, the user agent MUST perform the following steps to obtain an EVT:
+
+1.  Let |evtWellKnownUrl| be the URL `https://` concatenated with |issuer| and `/.well-known/email-verification`.
+2.  Fetch |evtWellKnownUrl|:
+    *   The request MUST be uncredentialed.
+    *   The request MUST be a GET request.
+3.  If the fetch fails or the response status is not 200 OK, return null.
+4.  Parse the response body as JSON.
+5.  Let |issuanceEndpoint| be the value of the `issuance_endpoint` member.
+6.  If |issuanceEndpoint| is not present or is not a valid URL, return null.
+7.  Generate a new ephemeral asymmetric key pair |keyPair| (if one is not already associated with the session).
+8.  Construct a JSON payload |payload| containing `{"email": |email|}`.
+9.  Perform a POST request to |issuanceEndpoint|:
+    *   The request MUST be credentialed.
+    *   The request body MUST be |payload|.
+    *   The request MUST include `Content-Type: application/json`.
+    *   The request MUST include `Sec-Fetch-Dest: email-verification`.
+    *   The request MUST be signed using HTTP Message Signatures [[!RFC9421]] using the private key of |keyPair|, including the signature in the `Signature` and `Signature-Input` headers, and the public key in the `Signature-Key` header.
+10. If the response status is 200 OK:
+    1.  Parse the response body as JSON.
+    2.  Let |evt| be the value of the `issuance_token` member.
+    3.  Return |evt|.
+11. Return null.
+
+## <dfn>Key Binding</dfn> ## {#algo-key-binding}
+
+Given an issuance token |evt|, a nonce |nonce|, and an origin |verifierOrigin|:
+
+1.  Let |keyPair| be the key pair used in the issuance request.
+2.  Create a JWT payload containing:
+    *   `aud`: |verifierOrigin|
+    *   `nonce`: |nonce|
+    *   `iat`: Current time.
+    *   `exp`: Current time + 5 minutes.
+3.  Sign the JWT payload with the private key of |keyPair| to create the Key-Binding JWT |kbJwt|.
+4.  Return the concatenation of |evt|, the character `~`, and |kbJwt|.
+
+# HTTP API # {#http-api}
+
+Issuers MUST implement the following HTTP endpoints and DNS records to support the Email Verification Protocol.
+
+## DNS Delegation ## {#dns-delegation}
+
+To associate an email domain with an EVP issuer, the domain owner MUST publish a DNS TXT record at the subdomain `_email-verification` of the email domain.
+
+The TXT record MUST contain a space-separated list of attributes. The following attribute is defined:
+
+*   `iss`: The domain of the authoritative EVP issuer.
+
+Example DNS TXT record for `example.com`:
+```
+_email-verification.example.com. IN TXT "iss=accounts.example.com"
+```
+
+## Well-Known Configuration ## {#well-known-config}
+
+The issuer MUST expose metadata at the following well-known URL:
+`https://{issuer}/.well-known/email-verification`
+
+The response MUST be a JSON object containing the following members:
+
+*   <dfn dict-member for="email-verification-metadata">issuance_endpoint</dfn>: The URL of the token issuance endpoint.
+*   <dfn dict-member for="email-verification-metadata">signing_alg_values_supported</dfn>: A list of JSON Web Algorithm (JWA) [[RFC7518]] signing algorithms supported by the issuer for signing EVTs.
+
+Example response:
+```json
+{
+  "issuance_endpoint": "https://accounts.example.com/email-verification/issuance",
+  "signing_alg_values_supported": ["EdDSA"]
+}
+```
+
+## Token Issuance Endpoint ## {#issuance-endpoint}
+
+The token issuance endpoint (defined by `issuance_endpoint` in the well-known configuration) is used by the User Agent to request an EVT.
+
+The endpoint MUST support POST requests.
+
+### Issuance Request ### {#issuance-request}
+
+The request MUST include:
+*   `Content-Type: application/json`
+*   `Sec-Fetch-Dest: email-verification`
+*   A JSON body containing:
+    *   `email`: The email address to verify.
+*   Cookies establishing the user's session with the issuer.
+*   HTTP Message Signature [[RFC9421]] binding the request to the client's ephemeral key.
+
+Example request:
+```http
+POST /email-verification/issuance HTTP/1.1
+Host: accounts.example.com
+Cookie: session=xyz123
+Content-Type: application/json
+Sec-Fetch-Dest: email-verification
+Signature-Input: sig=("@method" "@authority" "@path" "cookie" "signature-key");created=1692345600
+Signature: sig=:MEQCIHd8Y8qYKm5e3dV8y....:
+Signature-Key: sig=hwk; kty="OKP"; crv="Ed25519"; x="JrQLj5P_89iXES9-vFgrIy29clF9CC_oPPsw3c5D0bs"
+
+{"email":"user@example.com"}
+```
+
+### Issuance Response ### {#issuance-response}
+
+The response MUST be a JSON object containing:
+
+*   `issuance_token`: The issued EVT (string).
+
+The EVT itself is typically signed by the issuer. The format of the EVT is defined in [[EVP-Protocol]].
+
+Example response:
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"issuance_token":"eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnQrand0In0..."}
+```
+
+# Security and Privacy Considerations # {#security-privacy}
+
+## Privacy ## {#privacy-considerations}
+
+### Blinding the Issuer ### {#blinding-issuer}
+A key privacy goal of EVP is to prevent the issuer from learning which verifier the user is interacting with.
+
+The User Agent MUST ensure that the Well-Known fetch and the Accounts fetch do not leak the verifier's origin.
+The Issuance request, although credentialed, MUST NOT include the verifier's origin in the request headers (e.g., `Referer` or `Origin` MUST be omitted).
+
+### Tracking Risks ### {#tracking-risks}
+Since the issuance request uses cookies, the issuer learns that the user is active. However, it only learns this when the user actively selects their email for verification, which is a user-initiated action.
+
+## Security ## {#security-considerations}
+
+### Replay Attacks ### {#replay-attacks}
+The presentation token (EVT+KB) is bound to a specific `nonce` and `audience` (verifier origin) via the Key-Binding JWT.
+Verifiers MUST verify:
+1.  The `audience` matches their origin.
+2.  The `nonce` matches the one they generated for the form presentation.
+3.  The `exp` claim has not expired.
+
+This prevents an attacker from intercepting an EVT+KB and replaying it to another site or in a different context.
+
+### DNS Security ### {#dns-security}
+Issuer discovery relies on DNS TXT records. If DNS is compromised, an attacker could redirect discovery to a malicious issuer.
+To mitigate this, User Agents SHOULD use secure DNS (DNS-over-HTTPS or DNS-over-TLS) and check DNSSEC signatures if available.
+Furthermore, the issuer MUST match the email domain (unless delegated explicitly and securely).
+
+<pre class="biblio">
+{
+  "EVP-Protocol": {
+    "authors": [ "Dick Hardt", "Sam Goto" ],
+    "href": "https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html",
+    "title": "Email Verification Protocol (EVP) Backend",
+    "status": "Internet-Draft",
+    "publisher": "IETF"
+  }
+}
+</pre>
