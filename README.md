@@ -5,7 +5,8 @@
 > - @dickhardt
 >
 > Status:
-> - [Intent to Prototype](https://groups.google.com/a/chromium.org/g/blink-dev/c/pWfWupaOtJw/m/MS6uaf_WAAAJ?utm_medium=email&utm_source=footer)
+> - [x] [Intent to Prototype](https://groups.google.com/a/chromium.org/g/blink-dev/c/pWfWupaOtJw/m/MS6uaf_WAAAJ?utm_medium=email&utm_source=footer)
+> - [x] [Intent to Experiment](https://groups.google.com/a/chromium.org/g/blink-dev/c/Vp1w1u6rYjE)
 
 # Email Verification Tokens (EVTs)
 
@@ -21,32 +22,64 @@ Out of those, 73% of them blocked the account creation process before users veri
 
 That’s worrisome because email verification is currently done insecurely and inefficiently.
 
-The mechanism used to verify email addresses currently in deployment is: once an email is acquired (e.g. through an input box), websites generate, store and send a non-guessable code (or link which embeds the code, known as a “magic link”) to the user’s email inbox. The user proves ownership of the email address by accessing their email inbox, gathering the non-guessable code and sending it to the website (e.g. copying/pasting it in an input box or clicking on the magic link), which can then compare to what was stored ahead of time.
+Currently, once an email is acquired (e.g. through an input box), websites generate, store and send a non-guessable code (or link which embeds the code, known as a “magic link”) to the user’s email inbox. The user proves ownership of the email address by proving they have access to the inbox by presenting the non-guessable code to the website (e.g. copying/pasting it in an input box or clicking on the magic link).
 
+<!--
 <img width="1152" height="864" alt="Email Verification Tokens (EVTs) (3)" src="https://github.com/user-attachments/assets/2a18ba73-38de-4251-aca6-0a72159791df" />
+-->
 
-The main security concern with this mechanism is phishing: any attacking website can convince users (e.g. with social engineering) to access their email account and provide the code to the attacking website. In possession of the code and the email address, the attacker can then login as the user on the victim website. This is sometimes prevented by shortening the expiration time of the non-guessable code, but is still phishable nonetheless.
+Aside from the security concerns (i.e. phishing), this process is also cumbersome for users and inefficient for websites: (a) it relies on the delivery of emails (e.g. automated emails take a while to arrive and can and do often go into spam folders) and (b) switching the user’s context from the website to their email (web or native) app.
 
-Aside from the security concerns, this process is also cumbersome for users and inefficient for websites: (a) it relies on the delivery of emails (e.g. automated emails take a while to arrive and can and do often go into spam folders) and (b) switching the user’s context from the website to their email (web or native) app.
+For websites, the inefficiencies caused by the friction of this process directly affect customer acquisition costs (aka CAC) in conversion funnels, which typically start from advertisement to drive users to discover their services and end in account creation.
 
-For websites, the inefficiencies caused by the friction of this process directly affect customer acquisition costs (aka as CAC) in conversion funnels, which typically start from advertisement to drive users to discover their services and end in account creation.
-
-In addition to account creation, email address verification is also often used for account recovery (e.g. when users forget passwords), sign-in and second factor authentication (e.g. in sensitive logins such as banks or high stake actions, such as large purchases), so it affects large parts of the the user’s account lifecycle.
+In addition to account creation, email verification is also often used for account recovery (e.g. when users forget passwords), sign-in and second factor authentication (e.g. in sensitive logins such as banks or high stake actions, such as large purchases), affecting large parts of the the user’s account lifecycle.
 
 # The Proposal
 
-This proposal requires affecting change in 4 large and independent parts of the ecosystem: websites, email providers, browsers and users.
+This proposal requires affecting change in 4 large and independent parts of the ecosystem: browsers, email providers, websites and users.
 
-The proposal is to enhance the email acquisition experience with a cryptographically verified token (EVTs for short) signed by the email provider when (a) the user expresses their desire to automatically verify their email address, (b) the website requests and supports verifying EVTs, (c) the email provider provides and supports issuing EVTs and (d) the browser supports presenting them.
+The idea is to reuse the email provider session (in the browser cookie jar or on [native apps](https://github.com/fedidcg/native-app-idps)) to issue an email verification token (EVT for short) that the browser can use to present to websites.
 
-When all of these conditions  are met (see activation considerations below), the proposal allows the website to skip the manual verification process, automatically gathering a cryptographically verified proof of ownership.
+When these conditions are met (see activation considerations below), the proposal allows the website to skip the manual verification process, automatically gathering a cryptographically verified proof of ownership, and degrading gracefully to the status quo otherwise.
 
-When some of these conditions aren’t met, the proposal degrades gracefully to the status quo: a plain-text and unverified email address, which the website proceeds as it normally would manually verifying it.
+This proposal presupposes that the email provider has been set up ahead of time so that websites can request EVTs at run time.
+
+The next sections go over each of these steps:
+
+```
+Step                      RP Server     Browser              Issuer
+                               |            |                    |
+2.1 Session Binding            |--- nonce ->|                    |
+                               |            |                    |
+2.2 Email Acquisition          |      [obtain email from user]   |
+                               |            |                    |
+2.3 Token Request              |            |-- POST /issuance ->|
+                               |            |    (email, ...)    |
+                               |            |                    |
+2.4 EVT Creation               |            |           [create EVT]
+                               |            |                    |
+2.5 Token Issuance             |            |<------ EVT --------|
+                               |            |                    |
+2.6 KB Creation                |        [create KB-JWT]          |
+                               |            |                    |
+2.7 Token Presentation         |<-- EVT+KB -|                    |
+                               |            |                    |
+2.8 Token Verification    [verify EVT+KB]   |                    |
+                               |            |                    |
+```
+
+## The Email Provider API
+
+## The Website API
 
 To participate, websites need to explicitly and proactively add to their HTML forms an additional \<input\> element with (a) an `email-verification-token` in the “autocomplete” attribute and (b) a dynamically generated non-guessable code that is stored server-side in a newly introduced `nonce` attribute.
 
 ```html
-<input type="hidden" name="token" nonce="<?php generate_nonce() ?>" autocomplete="email-verification-token">
+<input
+  type="hidden"
+  name="token"
+  nonce="<?php generate_nonce() ?>"
+  autocomplete="email-verification-token">
 ```
 
 There are many other ways that we could expose this API to websites, which you can find in the alternatives considered and under consideration section below.
@@ -55,8 +88,9 @@ When the website exposes this extra `<input>` requesting an `autocomplete="email
 
 When the user selects an email in the input box, the browser presupposes that the email provider exposes itself as an EVP-compatible provider ahead of time by implementing the [EVP protocol](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html).
 
+<!--
 <img width="1280" height="960" alt="Email Verification Tokens (EVTs) (4)" src="https://github.com/user-attachments/assets/eb27296a-19eb-4b45-9591-5f00dfd469aa" />
-
+-->
 
 The browser starts by [discovering the issuer](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery) associated with the email address  (which can, but doesn’t have to, be same-site with the email provider, e.g. allows [gmail.com](http://gmail.com) to delegate EVTs to [accounts.google.com](http://accounts.google.com)), via a DNS TXT record set ahead of time:
 
