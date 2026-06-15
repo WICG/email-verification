@@ -47,25 +47,32 @@ This proposal presupposes that the email provider has been set up ahead of time 
 The next sections go over each of these steps:
 
 ```
-Step                      RP Server     Browser              Issuer
-                               |            |                    |
-2.1 Session Binding            |--- nonce ->|                    |
-                               |            |                    |
-2.2 Email Acquisition          |      [obtain email from user]   |
-                               |            |                    |
-2.3 Token Request              |            |-- POST /issuance ->|
-                               |            |    (email, ...)    |
-                               |            |                    |
-2.4 EVT Creation               |            |           [create EVT]
-                               |            |                    |
-2.5 Token Issuance             |            |<------ EVT --------|
-                               |            |                    |
-2.6 KB Creation                |        [create KB-JWT]          |
-                               |            |                    |
-2.7 Token Presentation         |<-- EVT+KB -|                    |
-                               |            |                    |
-2.8 Token Verification    [verify EVT+KB]   |                    |
-                               |            |                    |
+Step                                  Website              Browser              Issuer
+                                         |                    |                    |
+                                         |                    |                    |
+1 Login Status                           |                    |<---- logged-in ----|
+                                         |                    |                    |
+2 EVT Request                            |------ nonce ------>|                    |
+                                         |                    |                    |
+3.1 Email Selection                      |         [Obtain email from user]        |
+                                         |                    |                    |
+3.2 Accounts Request                     |                    |<---- accounts -----|
+                                         |                    |                    |
+3.3 Permission                           |           [Obtain permission]           |
+                                         |                    |                    |
+3.4 Token Request                        |                    |-- POST /issuance ->|
+                                         |                    |                    |
+3.5 EVT Creation                         |                    |              [Create EVT]
+                                         |                    |                    |
+3.6 Token Issuance                       |                    |<------ EVT --------|
+                                         |                    |                    |
+3.7 KB Creation                          |              [Create KB-JWT]            |
+                                         |                    |                    |
+3.8 Token Presentation                   |<----- EVT+KB ------|                    |
+                                         |                    |                    |
+4 Token Verification              [Verify EVT+KB]             |                    |
+                                         |                    |                    |
+                                         +                    +                    +
 ```
 
 ## The Email Provider API
