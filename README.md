@@ -68,9 +68,9 @@ Step                                  Website              Browser              
                                          |                    |                    |
 3.7 EVT Verification                     |              [Verify EVT+KB]            |
                                          |                    |                    |
-3.8 Form submission                     |         [Await form submission]         |
+3.8 Form submission                      |         [Await form submission]         |
                                          |                    |                    |
-3.9 EVT Presentation                    |<----- EVT+KB ------|                    |
+3.9 EVT Presentation                     |<----- EVT+KB ------|                    |
                                          |                    |                    |
 4.1 EVT Verification              [Verify EVT+KB]             |                    |
                                          |                    |                    |
