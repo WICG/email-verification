@@ -1,109 +1,428 @@
-# Email Verification Protocol
+> Last update: May 19th, 2026
+> 
+> Authors: 
+> - @samuelgoto
+> - @dickhardt
+>
+> Status:
+> - [x] [Intent to Prototype](https://groups.google.com/a/chromium.org/g/blink-dev/c/pWfWupaOtJw/m/MS6uaf_WAAAJ?utm_medium=email&utm_source=footer)
+> - [x] [Intent to Experiment](https://groups.google.com/a/chromium.org/g/blink-dev/c/Vp1w1u6rYjE)
 
-Verifying control of an email address is a frequent activity on the web today and is used both to prove the user has provided a valid email address, and as a means of authenticating the user when returning to an application. 
+# Email Verification Tokens (EVTs)
 
-Verification is performed by either:
+TL;DR; This is a proposal to help users verify email addresses (e.g. during account creation, sign-in and account recovery) by providing cryptographic proof of ownership seamlessly rather than email OTPs manually.
 
-1) Sending the user a link they click on or a verification code. This requires the user to switch from the application they are using to their email address and having to wait for the email arrive, and then perform the verification action. This friction often causes drop off in users completing the task. There are privacy implications as the email transmission informs the mail service the applications the user is using and when they used them.
+# The Problem
 
-2) The user logs in with a social login provider such as Apple or Google that provide a verified email address. This requires the application to have set up a relationship with each social provider, and the user to be using one of those services and wanting to share the additional profile information that is also provided in the OpenID Connect flow.
+As of 2025, 95% of the [50 most visited websites](https://en.wikipedia.org/wiki/List_of_most-visited_websites) support creating accounts and logging in with emails.
 
-These existing approaches create practical challenges for developers. Email-based flows require dealing with deliverability issues, delays, and users abandoning the process when messages don’t arrive promptly. Social login verification requires integrating with multiple providers, managing keys and configurations, the user having an account at one of the providers, and the user having the credentials readily available for a chosen provider. In both cases, developers have limited options to verify an email without sending mail or redirecting the user, and they cannot prevent the email provider from learning that a verification attempt occurred.
+> federated login comes as a close second, available in 72% of them, unsurprisingly because that’s also another big source of verified email addresses
 
-The Email Verification Protocol enables a web application to obtain a verified email address without sending an email, and without the user leaving the web page they are on. To enable the functionality, the mail domain delegates email verification to an issuer that has authentication cookies for the user. When the user provides an email to the HTML form field, the browser calls the issuer passing authentication cookies, the issuer returns a token, which the browser verifies and updates and provides to the web application. The web application then verifies the token and has a verified email address for the user.
+Out of those, 73% of them blocked the account creation process before users verified their emails. 26% of them started the flow with email acquisition and email verification before anything else (e.g. acquiring names or passwords/passkeys) and 47% of them performed email verification before even acquiring passwords (and, hence, passkeys).
 
-User privacy is enhanced as the issuer does not learn which web application is making the request as the request is mediated by the browser. 
+That’s worrisome because email verification is currently done insecurely and inefficiently.
 
+Currently, once an email is acquired (e.g. through an input box), websites generate, store and send a non-guessable code (or link which embeds the code, known as a “magic link”) to the user’s email inbox. The user proves ownership of the email address by proving they have access to the inbox by presenting the non-guessable code to the website (e.g. copying/pasting it in an input box or clicking on the magic link).
 
-## Key Concepts
+<!--
+<img width="1152" height="864" alt="Email Verification Tokens (EVTs) (3)" src="https://github.com/user-attachments/assets/2a18ba73-38de-4251-aca6-0a72159791df" />
+-->
 
+Aside from the security concerns (i.e. phishing), this process is also cumbersome for users and inefficient for websites: (a) it relies on the delivery of emails (e.g. automated emails take a while to arrive and can and do often go into spam folders) and (b) switching the user’s context from the website to their email (web or native) app.
 
-- **SD-JWT+KB token**: The selective disclosure json web token with key binding is specified in [Selective Disclosure for JWT](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/). This protocol does not use the selective disclosure features, it uses the key binding feature which enables a separation of token issuance and token presentation. The SD-JWT+KB is a token composed of two JWTs separated by the `~` character. The first JWT is an SD-JWT aka the issuance token and is signed by the issuer and contains the `email` and `email_verified` claims for the user, and the public key used by the browser to make the request. The second JWT is a KB token and is signed by the browser and contains a hash of the first JWT. The resulting SD-JWT+KB is the presentation token, and enables the application to verify the issuer provided the email address for the user without the issuer learning about the specific application
+For websites, the inefficiencies caused by the friction of this process directly affect customer acquisition costs (aka CAC) in conversion funnels, which typically start from advertisement to drive users to discover their services and end in account creation.
 
-- **Issuer**: The service that verifies the user controls an email address. A DNS record for the email domain delegates email verification to the issuer. The issuer serves a `.well-known/email-verification` metadata file that contains its `issuance_endpoint` that is called to obtain an issuance token, and its `jwks_uri` that points to the JWKS file containing the public keys used to verify the SD-JWT. The issuer is identified by its domain, an eTLD+1 (eg `issuer.example`). The hostname in all URLs from the issuer's metadata MUST end with the issuer's domain. This identifier is what binds the SD-JWT, the DNS delegation, with the issuer.
+In addition to account creation, email verification is also often used for account recovery (e.g. when users forget passwords), sign-in and second factor authentication (e.g. in sensitive logins such as banks or high stake actions, such as large purchases), affecting large parts of the the user’s account lifecycle.
 
-## User Experience
+# The Proposal
 
-Verified Email Release: The user navigates to any website that requires a verified email address and an input field to enter the email address. The user focusses on the input field and the browser provides one or emails for the user to select based on emails the user has provided previously to the browser. The user selects a verified email and the app proceeds having obtained the verified email.
+This proposal requires affecting change in 4 large and independent parts of the ecosystem: browsers, email providers, websites and users.
 
-> Are emails that can be verified decorated by the browser in the autocomplete UI?
-> What UX is presented to the user when the app gets a verified email so the user knows it is already verified?
+The idea is to reuse the email provider session (in the browser cookie jar or on [native apps](https://github.com/fedidcg/native-app-idps)) to issue an email verification token (EVT for short) that the browser can use to present to websites.
 
-# Processing Steps
+When these conditions are met (see activation considerations below), the proposal allows the website to skip the manual verification process, automatically gathering a cryptographically verified proof of ownership, and degrading gracefully to the status quo otherwise.
 
-1. [**Email Request**](#1-email-request)
-2. [**Email Selection**](#2-email-selection)
-3. [**Token Request**](#3-token-request)
-4. [**Token Issuance**](#4-token-issuance)
-5. [**Token Presentation**](#5-token-presentation)
-6. [**Token Verification**](#6-token-verification)
+This proposal presupposes that the email provider has been set up ahead of time so that websites can request EVTs at run time.
 
+The next sections go over each of these steps:
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant B as Browser
-    participant RP as RP Page
-    participant RPS as RP Server
-    participant I as Issuer
-    participant DNS as DNS
-
-    Note over U,DNS: Step 1: Email Request
-    U->>RP: Navigate to site
-    RP->>RPS: Nonce request
-    RPS->>RPS: Generate nonce, bind to session
-    RPS->>RP: Nonce
-    RP->>B: Display page 
-
-    Note over U,DNS: Step 2: Email Selection
-    U->>RP: Focus on email input field
-    RP->>B: Input field focused
-    B->>U: Display email address list
-    U->>B: Select email address
-
-    Note over U,DNS: Step 3: Token Request
-    B->>DNS: DNS TXT lookup<br/>_email-verification.$EMAIL_DOMAIN
-    DNS->>B: Return iss=issuer.example
-    B->>I: GET /.well-known/email-verification
-    I->>B: Return metadata
-    B->>B: Generate key pair<br/>Create request token
-    B->>I: POST request_token=JWT...
-
-    Note over U,DNS: Step 4: Token Issuance
-    I->>I: Verify request
-    I->>I: Generate SD-JWT
-    I->>B: {"issuance_token":"SD-JWT"}
-
-    Note over U,DNS: Step 5: Token Presentation
-    B->>B: Verify SD-JWT
-    B->>I: GET jwks_uri for public keys
-    I->>B: Return JWKS
-    B->>B: Create KB
-    B->>RP: Provide SD-JWT+KB
-
-    Note over U,DNS: Step 6: Token Verification
-    RP->>RPS: Send SD-JWT+KB 
-    RPS->>RPS: Parse SD-JWT+KB
-    RPS->>DNS: DNS TXT lookup for email domain
-    DNS->>RPS: Return iss=issuer.example
-    RPS->>I: GET /.well-known/email-verification
-    I->>RPS: Return metadata with jwks_uri
-    RPS->>I: GET jwks_uri
-    I->>RPS: Return JWKS public keys
-    RPS->>RPS: Verify SD-JWT
-    RPS->>RPS: Verify KB-JWT
-    RPS->>RP: Email verification complete
+```
+Step                                  Website              Browser              Issuer
+                                         |                    |                    |
+                                         |                    |                    |
+1.1 Login Status                         |                    |<---- logged-in ----|
+                                         |                    |                    |
+2.1 EVT Request                          |------ nonce ------>|                    |
+                                         |                    |                    |
+3.1 Email Selection                      |         [Obtain email from user]        |
+                                         |                    |                    |
+3.2 Issuer Discovery                     |            [Discover issuer]            |
+                                         |                    |                    |
+3.3 Accounts Request                     |                    |<---- accounts -----|
+                                         |                    |                    |
+3.4 Permission                           |           [Obtain permission]           |
+                                         |                    |                    |
+3.5 EVT Issuance                         |                    |<------ EVT --------|
+                                         |                    |                    |
+3.6 KB Creation                          |              [Create KB-JWT]            |
+                                         |                    |                    |
+3.7 EVT Verification                     |              [Verify EVT+KB]            |
+                                         |                    |                    |
+3.8 Form submission                      |         [Await form submission]         |
+                                         |                    |                    |
+3.9 EVT Presentation                     |<----- EVT+KB ------|                    |
+                                         |                    |                    |
+4.1 EVT Verification              [Verify EVT+KB]             |                    |
+                                         |                    |                    |
+                                         +                    +                    +
 ```
 
+Below, we'll go over each step of the process.
+
+## 1.1 Login Status
+
+First, everything starts with the user logging in to their email provider's issuer ahead of time. The issuer can notify the browser that they have a logged in user by calling the [Login Status API](https://w3c-fedid.github.io/login-status/):
+
+```javascript
+// When the user logs in to the IdP
+navigator.login.setStatus("logged-in");
+```
+
+Alternatively, via HTTP headers:
+
+```
+Set-Login: logged-in
+```
+
+This bit is then later used in the [accounts request](#33-accounts-request) step.
 
 
-## 1. Email Request
+> Calling the Login Status API also allows the browser to discover the [`login_url`](https://w3c-fedid.github.io/FedCM/#dom-identityproviderapiconfig-login_url), which allows the browser to know how to programaticaly log the user in. This feature is not yet supported and is noted as an [open question](#what-should-happen-when-users-are-logged-out-of-the-email-provider--issuer).
 
-User navigates to a site that will act as the RP. 
+## 2.1 EVT Request
 
-- **1.1** - the RP Server generates a nonce and binds the nonce to the session.
+Second, websites explicitly and proactively add to their HTML forms an additional `<input>` element with (a) an `email-verification-token` in the `autocomplete` attribute and (b) a dynamically generated non-guessable code that is stored server-side in a newly introduced `nonce` attribute. 
 
-- **1.2** - the RP Server returns a page that has an input field with the `autocomplete` property set to `"email"` and the `nonce` property set the the nonce. If the browser receives an `issuance_token` per 4.4 below, then it sends a `emailverifed` event that has a `presentationToken` property. Following is an example of the HTML in the page:
+For example:
+
+```html
+<input
+  type="hidden"
+  name="token"
+  nonce="<?php generate_nonce() ?>"
+  autocomplete="email-verification-token">
+```
+
+There are many other ways that we could expose this API to websites, which you can find in the alternatives considered and under consideration section below.
+
+## 3.1 Email Selection
+
+When the website exposes this extra `<input>` requesting an `autocomplete="email-verification-token"`, the browser observes when users select an email in an input box that belongs to the same form.
+
+## 3.2 Issuer Discovery
+
+When the user selects an email in the input box, the browser presupposes that the email provider exposes itself as an EVP-compatible provider ahead of time by implementing the [EVP protocol](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html).
+
+<!--
+<img width="1280" height="960" alt="Email Verification Tokens (EVTs) (4)" src="https://github.com/user-attachments/assets/eb27296a-19eb-4b45-9591-5f00dfd469aa" />
+-->
+
+The browser starts by [discovering the issuer](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery) associated with the email address  (which can, but doesn’t have to, be same-site with the email provider, e.g. allows [gmail.com](http://gmail.com) to delegate EVTs to [accounts.google.com](http://accounts.google.com)), via a DNS TXT record set ahead of time:
+
+```
+_email-verification.email-domain.example   TXT   iss=issuer.example
+```
+
+## 3.3 Accounts Request
+
+Once the issuer is discovered, the browser checks if the user is [logged in](https://w3c-fedid.github.io/login-status/#logged-in) to the issuer. 
+
+If not, it stops here.
+
+If so, the browser fetches all of the accounts that the user is logged in to, to see if the user is logged in to the email that was selected on Step 3.1.
+
+To do so, it starts by [fetching the `.well-known/web-identity` file](https://w3c-fedid.github.io/FedCM/#well-known-file), which allows it to learn two key things:
+
+- The [`accounts endpoint`](https://w3c-fedid.github.io/FedCM/#dom-identityproviderwellknown-accounts_endpoint)
+- The [`login_url`](https://w3c-fedid.github.io/FedCM/#dom-identityproviderwellknown-login_url)
+
+For example:
+
+```json
+{
+  "accounts_endpoint": "...",
+  "login_url": "...",
+}
+```
+
+The former is used by the browser to fetch the list of logged in accounts. 
+
+For example:
+
+```json
+{
+ "accounts": [{
+   "email": "john_doe@idp.example",
+  }, {
+   "email": "johnny@idp.example",
+  }]
+}
+```
+
+The browser goes through every `account` and checks if the user is logged in to the `email` that was selected before. The browser makes a case-insensitive string equality check to see if they match.
+
+> NOTE: possibly, in the future, we might want to deal with normalized emails, such as removing `.` or `+` from them. In the meantime, case insensitity goes a long way.
+
+## 3.4 Permission
+
+Once the browser has discovered the issuer and knows that the user is logged in to the issuer, it is pretty confident that can provide an EVT, so it can choose to ask the user for permission. Each browser implementation is responsible for making their own judgement based on their user’s expectations, so this specification isn’t opinionated about how the interface with the user materializes.
+
+## 3.5 Issuance Request
+
+Once the issuer is discovered, the [issuer metadata](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#section-3.2) can be fetched:
+
+```
+https://{issuer}/.well-known/email-verification
+```
+
+The issuer metadata contains a reference to the `issuance_endpoint` `signing_alg_values_supported` which is then used to create an issuance request.
+
+The browser generates an ephemeral asymmetric key pair, and constructs a `request_token` which is a signed JWT containing the ephemeral public key (`jwk` in header) and the request details (`email`, `aud` (issuer), and `iat` in payload).
+
+The browser then sends this to the issuer's issuance endpoint using `application/x-www-form-urlencoded` content type, including the issuer's first-party cookies.
+
+For example:
+
+```http
+POST /email-verification/issuance HTTP/1.1
+Host: accounts.issuer.example
+Cookie: session=...
+Content-Type: application/x-www-form-urlencoded
+Sec-Fetch-Dest: email-verification
+
+request_token=eyJhbGciOiJFZERTQSIsImp3ayI6eyJrdHkiOiJPS1AiLCJjcnYiOiJFZDI1NTE5IiwieCI6IjExcUdBWWRrOUU2ejdtVDZyazZqMVFuWGI2cFlxNHY5d1hiNnBZcTR2OXcifX0.eyJhdWQiOiJpc3N1ZXIuZXhhbXBsZSIsImlhdCI6MTcyNDA4MzIwMCwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIn0.signature...
+```
+
+The issuer verifies the request, checks the user's session, and returns an `issuance_token` containing a signed SD-JWT (with the `~` separator appended) in a JSON response:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: session=...; Secure; HttpOnly; SameSite=None
+
+{"issuance_token":"eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnAtc2Qtand0In0...~"}
+```
+
+## 3.6 KB Creation
+
+Once issued, the browser [binds the nonce](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation) and the audience to the EVT (binding both the origin of the website that the EVT is presented to as well as the dynamically generated nonce) and then.
+
+## 3.7 EVT+KB Verification
+
+Once the browser has a `EVT+KB` it performs a [verification](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification) to check that everything is alright before it can present it.
+
+## 3.8 Form submission
+
+Once the browser has a verified `EVT+KB` it await for form submission before it presents the EVT.
+
+## 3.9 EVT Presentation
+
+Before the form gets submitted, the browser looks for an input with an `autocomplete="email-verification-token"` input field in the same `<form>` as the `<input type="email">` that was used and sets its `value` before the `onsubmit` event is fired.
+
+## 4.1 EVT Verification
+
+Upon form submission, because the browser has filled the value of the `<input>` element with the EVT, the website’s server gets that value in the form submission HTTP handler and is then able to skip the manual verification step by performing an automated [token verification step](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification).
+
+# Activation Considerations
+
+There are orders of magnitude more users (say, \~billions) than websites (say, \~millions) than email providers (say, \~thousands) than browser vendors (say, \~tens), so our proposal focuses on pulling change in the reverse order: make browsers pull as much responsibility as possible, then email providers, then try to make things as lightweight as possible for websites and affect as little behavioral change (ideally, none) for users as possible.
+
+By design, EVT allows websites to deploy it (a) without changing the user’s behavior (aside from accepting an extra permission prompt), (b) without requiring every browser to support EVT at the same time and (c) without relying on changing every email provider in the world in lock step.
+
+Economically, because there is a cost involved in redeploying the website, we expect we’ll need a critical mass of email providers to support it before websites have any incentives to use it. For better or for worse, the current deployment of email providers follows a power law (e.g. \~10 email providers account for 50%+ of the market share), so we expect that incentivizing the head/torso of email providers might provide enough activation energy to bootstrap the flywheel. 
+
+Once / if we reach that minimum activation energy, we expect websites to then move next. Because verifying email addresses directly lowers customer acquisition costs (CAC) in acquisition funnels, we believe the activation energy necessary might be small enough compared to the implementation costs.
+
+# Relationship to other APIs
+
+We are deliberately designing EVTs to be a composable building block that can be requested (e.g. through different frontends) and provided (e.g. through different backends) in various ways.
+
+While this specific proposal focuses on requesting them through autocomplete, we expect EVTs may play a role in other ways the developer can make requests for the following related APIs:
+
+## WebAuthn API
+
+While not directly covered in the architecture described in this doc, we expect that the same UX (a browser mediated email selector) and architectural principles (e.g permission prompts) are going to apply to the Request User Info WebAuthn API [https://github.com/w3c/webauthn/blob/main/explainers/request-user-info.md](https://github.com/w3c/webauthn/blob/main/explainers/request-user-info.md) :
+
+<img width="1152" height="864" alt="Email Verification Tokens (EVTs) (6)" src="https://github.com/user-attachments/assets/98c79248-5cb4-478d-9d2c-c8a80760bb99" />
+
+Outside of the Passkey Creation API, some have raised whether EVT could diminish the role that passkeys will have going forward (as a first factor), and it is our opinion that (a) it is too soon to tell but if we had to make a prediction (b) it is unlikely that EVT is going to have any negative effect in our ability to move users away from passwords.
+
+It is plausible that EVTs make passwords (and, hence, passkeys) altogether less useful by making login entirely done via (a progressively more efficient) email verification, and while we acknowledge that that’s a viable pattern currently deployed in small / niche websites, we believe that EVTs is just going to be an extra tool in the toolbox that will coexist symbiotically with passkeys.
+
+## Federated Credentials API
+
+A significant part of the deployment of FedCM is represented by email providers: most notably [google.com](http://google.com) (which is authoritative to [gmail.com](http://gmail.com) email addresses, accounts for \~45% of the email provider market share) [seznam.cz](http://seznam.cz), and [gmx.de](http://gmx.de) / [web.de](http://web.de) (account for a large portion of the market share in Europe).
+
+That’s not entirely surprising, since social login competes with email verification for account creation (as noted above in the introduction).
+
+This proposal relies on discovering email addresses from the autofill and could reconcile well with FedCM to discover and issue EVTs:
+
+```html
+// While logging into the email provider
+<script>
+  navigator.login.setStatus("logged-in", {
+    accounts: [{
+      firstName: "John",
+      lastName: "Doe",
+      email: "john@doe.com"
+    }]
+  });
+  IdentityProvider.register("evp");
+</script>
+
+// While requesting in the RP, autofill gets augumented by email addresses that were
+// declared in FedCM.
+<input type="email" autocomplete="email">
+<input type="hidden" nonce="1234" autocomplete="email-verification-token">
+```
+
+This could also be made to work with native applications through [https://github.com/fedidcg/native-app-idps](https://github.com/fedidcg/native-app-idps) 
+
+## Digital Credentials API
+
+We expect more and more government-issued identities to be made available on digital wallets, as well as IDs like corporate employment cards.
+
+It is possible that we would want to allow users to pick verified email addresses from these IDs too, specifically in a way that conforms to EVT.
+
+Much like EVTs are designed to augment WebAuthn and FedCM, we expect EVTs could be used inside of the DC API if the aggregator (currently, OSes) of digital credentials wanted to provide authoritative verified email addresses rather than derived (such as when “X verified Y”, such as “facebook/google” verifying “hotmail/yahoo” email addresses).
+
+So, for example, if a website requested an EVT, and a native application (say, a digital wallet) had one registered at the OS level, the browser would be able to provide it through the autocomplete UX.
+
+One immediate implementation challenge we face is that autofill UX is entirely done in the browser memory address space, whereas all of the digital credentials are aggregated at the operating system address space, so it is not clear how we’d augment them in autofill. One plausible answer is if we made the OS share the metadata with browsers, which is similar to how passkeys work on browsers on Android and iOS.
+
+If/when we get to that point (where OSes share the metadata of the credentials with browsers), browsers could make them available in the EVT autocomplete.
+
+It might be also be possible for the browser to talk to the wallets directly through the same mechanism FedCM is planning to use to talk to IdPs via [https://github.com/fedidcg/native-app-idps](https://github.com/fedidcg/native-app-idps), but that’s still too soon to tell if there is going to be better OS support for browsers.
+
+# Open Questions
+
+There are a few things that we are still unsure about:
+
+## Can this handle directed email addresses?
+
+We believe that it is possible to reconcile this proposal well with directed email addresses, but this is still an area of open investigation:
+
+[https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html\#name-private-email-addresses](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-private-email-addresses)   
+
+## What should happen when users are logged out of the email provider / issuer?
+
+We think it is plausible that the browser might be able to help the user user login to the email provider / issuer inline in the flow. It is not quite clear to us yet how, but one of the intuitions is that we can offer a streamlined experience through passkeys:
+
+[https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html\#name-webauthn-authentication](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-webauthn-authentication) 
+
+## Is the permission prompt strictly necessary?
+
+It is unclear to us right now what, if any, is the value of the permission prompt: from first principles, what does the website learn that it wouldn’t otherwise learn, and does that require user permission?
+
+If we do choose to show a permission prompt, a few questions: 
+
+- How often we want to show it to the user (e.g. Every time an email is selected? Once? Once per website?).  
+- When do we show it? After we make credentialed requests? Before? If so, what happens when the user is logged out (have we made an offer to the user that we weren’t sure we would be able to keep?)?
+
+## Could this also handle usernames?
+
+Mike West and Dominic Battre both note that we could also tie this to `<input autocomplete="username">`, in addition to `<input autocomplete="email">`.
+
+This system doesn't make any assertions that an email is delivered. You could take this a step further and claim that this system has little to do with "email", except insofar as an email address is used as an identifier for the provider to verify, and folks generally want email addresses today.
+
+It seems to us that you could make the system quite a bit more generic by changing a few words, and introducing a mechanism by which an identifier could be tied to an issuer absent an explicit `@provider.example` in the string (e.g. another input field whose value is inferred from the identifier if possible, or set by the site for social sign in).
+
+## Would this work with complex forms?
+
+Mike West notes: what happens when forms have two email addresses?
+
+That is, this example seems to assume that every form will have one and only one email address field, in which case it's trivial to find the \`type=email\` field and bind it to the hidden input field's `nonce` for the verification request. Some forms contain more than one email address, however. For example, there are  governmental forms that ask for both work and personal email, and I can imagine such entities wanting verification of those fields if it was easily possible (they don't ask for it today, or didn't in this specific case). How could that be supported? 
+
+# Alternatives Considered
+
+Email Verification is a broad area and there are multiple ways that we can accomplish this.
+
+## Can't this be done in userland?
+
+There are some aspects of this proposal that could have been done in userland, but not all of it.
+
+First, implementing this in userland would require access to third party cookies, which gets blocked on a meaningful portion of the usage of the web.
+
+Second, even with access to third party cookies, you’d need a neutral intermediator that could act as a holder between the issuer and the verifier. This was historically done with a user-trusted origin, such as [accountchooser.org](http://accountchooser.org) (for [OIDF’s Account Chooser](https://openid.net/wordpress-content/uploads/2011/12/ac-integration-spec.html#rfc.section.1)) and [persona.org](http://persona.org) (for [Mozilla’s BrowserID](https://en.wikipedia.org/wiki/Mozilla_Persona)).
+
+We think part of the reason the problem of email verification hasn’t been solved yet is because this proposal relies on changing the browser.
+
+## What if we activated email clients, rather than email providers?
+
+One of the main forks on the road that we considered was whether to facilitate email providers providing an OTP or an EVT, for example, via augmentin WebOTP / `autocomplete="one-time-code"`. 
+
+For example:
+
+[https://github.com/samuelgoto/email-otp](https://github.com/samuelgoto/email-otp) 
+
+We believe these aren’t mutually exclusive propositions, but are rather complimentary with different trade-offs.
+
+The main reason an OTP-oriented approach is compelling is because it introduces another thin waist that we could buckle: email clients (IMAP/POP/SMTP).
+
+There are orders of magnitude fewer email clients (e.g. notably Thunderbird, Spark and Apple Mail) than there are email providers, so if we could change \~tens of email clients to provide OTPs for \~thousands of email providers, that could also lead to a much lower activation energy.
+
+OTPs still rely on email delivery and having an OTP page on websites, so while we expect this to be a reasonable topology, we expect EVTs to provide a better user experience (at the cost of having a higher activation energy).
+
+Nonetheless, we think extending WebOTP / autocomplete \= “one-time-code” and coming up with conventions / integrations between email clients and browsers is not mutually exclusive with this proposal but are rather symbiotic.
+
+## Website API
+
+There are two big variations that we explored:
+
+- JS Imperative APIs and   
+- HTML Declarative APIs
+
+### Have you looked at imperative APIs?
+
+Within the JS Imperative API space, we explored augment three options:
+
+- Extending the FedCM API  
+- Extending the Digital Credentials API  
+- Introducing a new credential type
+
+We went over the relationship with FedCM and the DC API above, so refer to that to see how we reconcile the two, but the third one is still a valid formulation that we think could work:
+
+```javascript
+<script>
+const {token} = await navigator.credentials.get({
+  mediation: "conditional",
+  email: {
+    nonce: "1234"
+  }
+});
+document.getElementByName("token").value = token;
+</script>
+<form action="signup.php" method="POST">
+  <input type="email" name="email" autocomplete="email email-verification-protocol">
+  <input type="hidden" name="token">
+</form>
+```
+
+The pros are that:
+
+- `nonce` goes into a Credential Manager API call, which sounds like the right place  
+- `token` gets returned into a Credential Manager API call, which also sounds like the right place
+
+The cons are:
+
+- We’d like to release the token and resolve the promise upon form submission, rather than email selection, which makes “conditional” inconsistent with how WebAuthn works.  
+- The developer is responsible for manually taken the value of the token and inserting into an input field (more control for developers but at the cost of being more work too)
+
+### Have you looked at declarative APIs?
+
+There are a series of variations of ways we could expose this as a HTML API. Here are a few that occurred to us and their trade-offs.
+
+Our very first intuition was to create an EmailVerifiedEvent and dispatch it when the email address was selected:
 
 ```html
 <input id="email"
@@ -120,375 +439,115 @@ input.addEventListener('emailverified', e => {
   })
 })
 </script>
-
 ```
 
-> Authors are exploring alternative HTML and JS API approaches
+The main reason we moved away from this formulation was because we wanted to tie the EVT release with the form submission, and dispatching an event to coordinate with the onsubmit handler seemed unnecessary complex.
 
+From there, our second intuition was to leave `nonce` in the `<input type=”email”>` and hard-code a special value that gets submitted into the form:
 
-## 2. Email Selection 
-
-- **2.1** - User focusses on email input field 
-
-- **2.2** - The browser displays the list of email addresses it has for the user. 
-
-> Q: Are emails that could be verified decorated for user to understand? 
-
-- **2.3** - User selects an email address from browser selection, or the user types an email into the field.
-
-> Future: allow user to type in a field so we learn about new emails, or if the user does not want the browser to remember emails, the Email Verification Protocol is still available. In the future when we allow the user to use a passkey to authenticate to the issuer, the user can provide a verified email to a web application using a public computer by authenticating with their passkey and not enter any secrets into the public computer.
-
-
-## 3. Token Request
-
-If the RP has performed (1):
-
-- **3.1** - the browser parses the email domain ($EMAIL_DOMAIN) from the email address, looks up the `TXT` record for `_email-verification.$EMAIL_DOMAIN`. The contents of the record MUST start with `iss=` followed by the issuer identifier. There MUST be only one `TXT` record for `_email-verification.$EMAIL_DOMAIN`.
-
-example record
-
-```bash
-_email-verification.email-domain.example   TXT   iss=issuer.example
+```html
+<form action="signup.php" method="POST">
+  <input type="email" name="email" autocomplete="email" nonce="1234">
+</form>
 ```
 
-This record states that `email-domain.example` has delegated email verification to the issuer `issuer.example`.
+   
+Leading to a form submission where a “special” or “reserved” parameter (e.g. `email.__verification__`) would be passed upon form submission.
 
-If the email domain and the issuer are the same domain, then the record would be:
-
-```bash
-_email-verification.issuer.example   TXT   iss=issuer.example
+```
+POST signup.php
+email=foobar@gmail.com&email.__verification__=456
 ```
 
-> Access to DNS records and email is often independent of website deployments. This provides assurance that an issuer is truly authorized as an insider with only access to websites on `issuer.example` could setup an issuer that would grant them verified emails for any email at `issuer.example`.
+Having a `nonce` associated with an `<input type=”email”>` seemed awkward, so we looked into maybe introducing a new element type, say, `<nonce>`: 
 
-- **3.2** - if an issuer is found, the browser loads `https://$ISSUER$/.well-known/email-verification` and MUST follow redirects to the same path but with a different subdomain of the Issuer.
-
-For example, `https://issuer.example/.well-known/email-verification` may redirect to `https://accounts.issuer.example/.well-known/email-verification`. 
-
-
-- **3.3** - the browser confirms that the `.well-known/email-verification` file contains JSON that includes the following properties:
-
-- *issuance_endpoint* - the API endpoint the browser calls to obtain an SD-JWT
-- *jwks_uri* - the URL where the issuer provides its public keys to verify the SD-JWT
-- *signing_alg_values_supported* - OPTIONAL. JSON array containing a list of the JWS signing algorithms ("alg" values) supported by both the browser for request tokens and the issuer for issued tokens. The same algorithm MUST be used for both the `request_token` and `issuance` within a single issuance flow. Algorithm identifiers MUST be from the IANA "JSON Web Signature and Encryption Algorithms" registry. If omitted, "EdDSA" is the default. "EdDSA" SHOULD be included in the supported algorithms list. The value "none" MUST NOT be used.
-
-Each of these properties MUST include the issuer domain as the root of their hostname. 
-
-Following is an example `.well-known/email-verification` file
-
-```json
-{
-  "issuance_endpoint": "https://accounts.issuer.example/email-verification/issuance",
-  "jwks_uri": "https://accounts.issuer.example/email-verification/jwks",
-  "signing_alg_values_supported": ["EdDSA", "RS256"]
-}
+```html
+<form action="signup.php" method="POST">
+  <input type="email" name="email" autocomplete="email" >
+  <nonce for="email" value="1234"></nonce>
+</form>
 ```
 
-- **3.4** - the browser generates a fresh private / public key and signs a JWT with the private key that has the public key in the JWT header in the JWK format as a `jwk` claim that contains the following claims in the payload:
+Introducing a `<nonce>` seemed like overkill, so we then considered “what if we create a new `<input>` type”, say `“verification”`?
 
-  - *aud* - the issuer
-  - *iat* - time when the JWT was signed
-  - *jti* - unique identifier for the token
-  - *email* - email address to be verified 
-
-The browser SHOULD select an algorithm from the issuer's `signing_alg_values_supported` array, or use "EdDSA" if the property is not present.
-
-An example JWT header:
-```json
-{
-  "alg": "EdDSA",
-  "typ": "JWT",
-  "jwk": {
-    "kty": "OKP",
-    "crv": "Ed25519",
-    "x": "11qYAYdk9E6z7mT6rk6j1QnXb6pYq4v9wXb6pYq4v9w"  // base64url-encoded public key
-  }
-}
 ```
-> do we want to register a new JWT `typ`
-
-An example payload 
-```json
-{
-  "aud": "issuer.example",
-  "iat": 1692345600,
-  "email": "user@example.com"
-}
+ <input type="verification" for="email" nonce="1234" name="token">
 ```
 
+That seemed like it would have all sorts of good properties, including that we could declare `nonce` and also `name`, solving both how you provide the `input` to the EVP algorithm with the `nonce` but also how EVP could “output” the result with the “name” property and how it is used in form submission, addressing the awkward “reserved” form submission parameter name.
 
-- **3.5** - the browser POSTs to the `issuance_endpoint` of the issuer with 1P cookies with a content-type of `application/x-www-form-urlencoded` containing a `request_token` parameter set to the signed JWT and the `Sec-Fetch-Dest` header set to `email-verification`. 
+`<input type="verification">` degrades gracefully to `<input type="text">` when the browser doesn’t know what it is, so we’d have to include a `style: display: none` in it if we wanted to make it invisible.
 
-```bash
-POST /email-verification/issuance HTTP/1.1
-Host: accounts.issuer.example
-Cookie: session=...
-Content-Type: application/x-www-form-urlencoded
-Sec-Fetch-Dest: email-verification
+That’s when we realized that `<input type="hidden">` might actually be exactly what we were looking for, because it (a) is hidden, (b) participates in form submission with a name, (c) can already accept an `autocomplete` attribute that the browser could use to fill and (d) just needed to be extended to include `nonce`.
 
-request_token=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVC...
+Hence, our latest proposal being:
+
+```html
+<form action="signup.php" method="POST">
+  <input type="email" name="email" autocomplete="email">
+  <!-- one-liner that can be added progressively to a form -->
+  <input type="hidden" name="token" 
+    nonce="<?php server_side_generate_nonce() ?>" 
+    autocomplete="email-verification-token"
+  >
+</form>
 ```
 
-## 4. Token Issuance
+We don’t think this is necessarily great, and would welcome suggestions on how to make this better, but it is the best proposal we heard so far (for the reasons described above).
 
-On receipt of a token request:
+# Privacy considerations
 
-- **4.1** - the issuer MUST verify the request headers:
+First, it seemed worth noting what this proposal does NOT do. 
 
-  - `Content-Type` is `application/x-www-form-urlencoded`
-  - `Sec-Fetch-Dest` is `email-verification`
+This proposal does not change the fact that email addresses can be (and most often are):
 
-- **4.2** - the issuer MUST verify the request_token by:
+- Global identifiers that are acquired by websites and sold to aggregators that can join the user’s online and offline activities (e.g. signing-up to a website with an email can be joined with creating an account with the same email at a chain clothing store).  
+- Spam vectors that are acquired by websites and sold for remarketing purposes
 
-  - parsing the JWT into header, payload, and signature components
-  - confirming the presence of, and extracting the `jwk` and `alg` fields from the JWT header, and the `aud`, `iat`, and `email`, claims from the payload
-  - verifying the JWT signature using the `jwk` with the `alg` algorithm
-  - verifying the `aud` claim exactly matches the issuer's identifier
-  - verifying the `iat` claim is within 60 seconds of the current time
-  - verifying the `email` claim contains a syntactically valid email address
+By making email verification frictionless, we acknowledge that this proposal might perpetuate and sediment these practices more than they already are.
 
+To address this at scale, it is important to understand why websites require email addresses to create accounts in the first place. We think there are three reasons: (a) it serves as a unique and memorable user identifier, (b) it serves as a reliable communication mechanism. The last property is important because a reliable communication mechanism can be used not only for (i) re-engagement (which is important in and of itself for websites), but (ii) as an account recovery mechanism (for account security).
 
-- **4.3** - the issuer checks if the cookies sent represent a logged in user, and if the logged in user has control of the email provided in the request_token. If so the issuer generates an SD-JWT with the following properties:
+We think it is plausible that WebAuthn might create a better (ii) account recovery mechanism, but we also think that there are always going to be websites that have a justifiable need to have a (i) re-engagement channel.
 
-  - **Header**: MUST contain 
-    - `alg`: signing algorithm (SHOULD match the algorithm from the request_token)
-    - `kid`: key identifier of key used to sign
-    - `typ` set to "evp+sd-jwt"
-  - **Payload**: MUST contain the following claims:
-    - `iss`: the issuer identifier
-    - `iat`: issued at time 
-    - `cnf`: confirmation claim containing the public key from the request_token's `jwk` field
-    - `email`: claim containing the email address from the request_token
-    - `email_verified`: claim that email is verified per OpenID Connect 1.0
-  - **Signature**: MUST be signed with the issuer's private key corresponding to a public key in the `jwks_uri` identified by `kid`
+Thankfully, we think that browsers and email providers can provide email addresses that are directed / proxied, so that it can’t be used as a global identifier and spam can be controlled per website. See the Future Work section for more information on directed email addresses.
 
+## Comparison to the Status Quo
 
-Example header:
-  ```json
-  {
-    "alg": "EdDSA",
-    "kid": "2024-08-19",
-    "typ": "evp+sd-jwt"
-  }
-  ```
+Second, it seemed worth noting what this proposal DOES change in comparison to the status quo mechanism of email OTPs.
 
-Example payload:
-  ```json
-  {
-    "iss": "issuer.example",
-    "iat": 1724083200,
-    "cnf": {
-      "jwk": {
-        "kty": "OKP",
-        "crv": "Ed25519",
-        "x": "11qYAYdk9E6z7mT6rk6j1QnXb6pYq4v9wXb6pYq4v9w"
-      }
-    },
-    "email": "user@example.com",
-    "email_verified": true
-  }
-  ```
-The resulting JWT has the `~` appended to it, making it a valid SD-JWT.
+- First, the email provider is kept blind during presentation, so it no longer learns that the user is using specific websites. Obviously, email providers (a) are generally trusted by users and (b) learn as soon as the website sends an email to the user, but websites no longer have to at account creation (or ever) with this proposal.  
+- Second, the website learns that the user is logged in to the email provider on this device, which is (slightly) more than they were learning with magic links (e.g. users can be logged in to their email inbox on other devices).  
+- Third, the website gets a token signed by the issuer, which constitutes a communication channel between the email provider and the website. It is unclear how that would be abused given the current structure of incentives, but it seemed worth noting as distinct from email OTPs.  
+- Fourth, because the issuance request sends the email that the user selected, the issuer learns that the user used an email address that does not necessarily match the email that the user was logged as. There are ways that we could address this, but it seemed like the costs would outweigh the benefits (users using public or shared computers occurred to us).
 
-- **4.4** - the issuer returns the SD-JWT to the browser as the value of `issuance_token` in an `application/json` response.
+# Security considerations
 
-Example:
-```bash
-HTTP/1.1 200 OK
-Content-Type: application/json
+There are various security considerations to be made.
 
-{"issuance_token":"eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJ3ZWItaWRlbnRpdHkrc2Qtand0In0..."}
-```
+Like the privacy considerations above, it is important to note how websites use email verification today and how this proposal might affect them.
 
-## 4.5 Error Responses
+First, it is important to note that this proposal doesn’t change the fact that email domains can (and do) change hands (e.g. a domain expiring and being bought by another operator), so they have to be used appropriately (e.g. in conjunction with other forms of authentication or for non sensitive operations).
 
-If the issuer cannot process the token request successfully, it MUST return an appropriate HTTP status code with a JSON error response containing an `error` field and optionally an `error_description` field.
+Second, this proposal is weaker than OTPs in that they do NOT assert that the email was actually delivered to the user’s inbox, but rather that the user is logged in to the email app. In practice, we think this distinction isn’t meaningful (specially because delivery is also a function of uptime availability too), but it is worth noting that it is weaker than OTPs in that way.
 
+Asides from that, here are a few considerations we are working through:
 
-### 4.5.1 Invalid Content-Type Header
-
-When the request does not include the required `Content-Type: application/x-www-form-urlencoded` header, the server MUST return the 415 HTTP response code
-
-
-### 4.5.2 Invalid Sec-Fetch-Dest Header
-
-When the request does not include the required `Sec-Fetch-Dest: email-verification` header:
-
-**HTTP 400 Bad Request**
-```json
-{
-  "error": "invalid-request",
-  "error_description": "Missing or invalid Sec-Fetch-Dest header"
-}
-```
-
-The `error_description` SHOULD specify that the Sec-Fetch-Dest header is missing or invalid.
-
-### 4.5.3 Authentication Required
-
-When the request lacks valid authentication cookies, contains expired/invalid cookies, or the authenticated user does not have control of the requested email address:
-
-**HTTP 401 Unauthorized**
-```json
-{
-  "error": "authentication_required",
-  "error_description": "User must be authenticated and have control of the requested email address"
-}
-```
-
-### 4.5.4 Invalid Parameters
-
-When the `request_token` is malformed, missing required claims, or contains invalid values:
-
-**HTTP 400 Bad Request**
-```json
-{
-  "error": "invalid_request", 
-  "error_description": "Invalid or malformed request_token"
-}
-```
-
-### 4.5.5 Invalid Token
-
-When the `request_token` signature verification fails or the token structure is invalid:
-
-**HTTP 400 Bad Request**
-```json
-{
-  "error": "invalid_token",
-  "error_description": "Token signature verification failed or token structure is invalid"
-}
-```
-
-### 4.5.6 Server Errors
-
-For internal server errors or temporary unavailability:
-
-**HTTP 500 Internal Server Error**
-```json
-{
-  "error": "server_error",
-  "error_description": "Temporary server error, please try again later"
-}
-```
-
-
-> In a future version of this spec, the issuer could prompt the user to login via a URL or with a Passkey request.
-
-
-## 5. Token Presentation
-
-On receiving the `issuance_token`:
-
-- **5.1** - the browser MUST verify the SD-JWT per (SD-JWT spec) by:
-
-  - parsing the SD-JWT into header, payload, and signature components
-  - confirming the presence of, and extracting the `alg` and `kid` fields from the SD-JWT header, and the `iss`, `iat`, `cnf`, `email`, and `email_verified` claims from the payload
-  - parsing the email domain from the `email` claim and looking up the `TXT` record for `_email-verification.$EMAIL_DOMAIN` to verify the `iss` claim matches the issuer identifier in the DNS record
-  - fetching the issuer's public keys from the `jwks_uri` specified in the `.well-known/email-verification` file
-  - verifying the SD-JWT signature using the public key identified by `kid` from the JWKS with the `alg` algorithm
-  - verifying the `iat` claim is within 60 seconds of the current time
-  - verifying the `email` claim matches the email address the user selected
-  - verifying the `email_verified` claim is true
-
-
-- **5.2** - the browser then creates an SD-JWT+KB by:
-
-  - taking the verified SD-JWT from step 5.1 as the base token
-  - creating a Key Binding JWT (KB-JWT) with the following structure:
-    - **Header**: 
-      - `alg`: same signing algorithm used by the browser's private key
-      - `typ`: "kb+jwt"
-    - **Payload**:
-      - `aud`: the RP's origin
-      - `nonce`: the nonce from the original `navigator.credentials.get()` call
-      - `iat`: current time when creating the KB-JWT
-      - `sd_hash`: SHA-256 hash of the SD-JWT
-  - signing the KB-JWT with the browser's private key (the same key pair generated in step 3.4)
-  - concatenating the SD-JWT and the KB-JWT separated by a tilde (~) to form the SD-JWT+KB
-
-  Example KB-JWT header:
-  ```json
-  {
-    "alg": "EdDSA",
-    "typ": "kb+jwt"
-  }
-  ```
-
-  Example KB-JWT payload:
-  ```json
-  {
-    "aud": "https://rp.example",
-    "nonce": "259c5eae-486d-4b0f-b666-2a5b5ce1c925",
-    "salt": "kR7fY9mP3xQ8wN2vL5jH6tZ1cB4nM9sD8fG3hJ7kL2p",
-    "iat": 1724083260,
-    "sd_hash": "X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"
-  }
-  ```
-
-- **5.3** - the browser sets a TBD hidden field and fires the TBD event ...
-
-> details TBD
-
-## 6. Token Verification
-
-The RP web page now has the SD-JWT+KB from the event, and passes it to the RP server, or the token was posted to the RP server.
-
-> details TBD
-
-The RP server MUST verify the SD-JWT+KB by:
-
-- **6.1** - the RP server receives the SD-JWT+KB from the web page
-
-- **6.2** - the RP parses the SD-JWT+KB by separating the SD-JWT and KB-JWT components (separated by tilde ~)
-
-- **6.3** - the RP verifies the KB-JWT by:
-  - parsing the KB-JWT into header, payload, and signature components
-  - confirming the presence of, and extracting the `alg` field from the KB-JWT header, and the `aud`, `nonce`, `iat`, and `sd_hash` claims from the payload
-  - verifying the `aud` claim matches the RP's origin
-  - verifying the `nonce` claim matches the nonce from the RP's session with the web page
-  - verifying the `iat` claim is within a reasonable time window 
-  - computing the SHA-256 hash of the SD-JWT and verifying it matches the `sd_hash` claim
-
-- **6.4** - the RP verifies the SD-JWT by:
-  - parsing the SD-JWT into header, payload, and signature components
-  - confirming the presence of, and extracting the `alg` and `kid` fields from the SD-JWT header, and the `iss`, `iat`, `cnf`, `email`, and `email_verified` claims from the payload
-  - parsing the email domain from the `email` claim and looking up the `TXT` record for `_email-verification.$EMAIL_DOMAIN` to verify the `iss` claim matches the issuer identifier in the DNS record
-  - fetching the issuer's public keys from the `jwks_uri` specified in the `.well-known/email-verification` file
-  - verifying the SD-JWT signature using the public key identified by `kid` from the JWKS with the `alg` algorithm
-  - verifying the `iss` claim exactly matches the issuer identifier from the DNS record
-  - verifying the `iat` claim is within a reasonable time window
-  - verifying the `email_verified` claim is true
-
-- **6.5** - the RP verifies the KB-JWT signature using the public key from the `cnf` claim in the SD-JWT with the `alg` algorithm from the KB-JWT header
-
-
-# Privacy Considerations
-
-> Below are notes capturing some discussions of potential privacy implications.
-
-1. The email domain operator no longer learns which applications the user is verifying their email address to as the applications are no longer sending an email verification code to the user. By using an SD-JWT+KB, the browser intermediates the request and response so that the issuer does not learn the identity of the RP. 
-
-2. The RP can infer if a user is logged into the issuer as the RP receives a SD-JWT when the user is logged in, and does not when the user is not logged in. 
-
-3. The issuer may learn the user has email at a mail domain it is authoritative for that it did not know the user had.
-
-# Alternatives Under Consideration 
-
-## JS API for Providing the Email
-
-The web page would call an API passing the email address and nonce. It would return a promise that resolves to the SD_JWT or an error response. The API would only be callable after a user gesture such as clicking a button labelled verify on the web page. This provides the web page in more flexibility in how to gather the email address. For example, if the web page is using EVP for login, and the user has used different emails for login and those are stored in cookies, the page can display the list of emails and an option to provide a different one. The user can then select the email they want to use rather than having to type it into a text field.
-
-## Passkey Authentication 
-
-In addition to, or instead of the browser sending cookies to the Issuer, the Issuer could return a WebAuthN request to the browser if it has credentials for the user identified by the email address. The browser would then interact with the user and provide the WebAuthN response to the Issuer, authenticating the user, and the Issuer would then return the SD-JWT.
-
-# Alternatives Considered 
-
-## Use .wellknown for Mail Domain delegation to Issuer
-
-Rather than the DNS TXT record, the Mail Domain would host a JSON file in the .wellknown domain. This creates challenges for the long tail of individually owned domains:
-
-- would require a domain that is used just for email to now have to support a web server
-- the mail domain is usually an apex domain, which does not support CNAME, complicating hosting a web site
+- Is the protocol safe?  
+  - While the protocol described is using fairly well-established parts, when we put them together, have we introduced any additional attack? [https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html)   
+  - Are the default crypto choices sensible?  
+  - The proposal relies on DNS. Is DNS sufficiently secure if we resolve them server side?  
+  - Should we include the `nonce` in the form submission?  
+- Can EVTs be requested in subframes?  
+  - Should we require permission policies for cross origin iframes?  
+  - Should we disable this in fenced frames?  
+  - Should we disable opaque origins?  
+- Cookies  
+  - SameSite=Strict  
+  - Since we're sending verification requests in a first-party context, this creates a mechanism by which `SameSite=Strict` cookies are sent based on a user's activity on a third-party site. This is probably defensible, given the way in which the mechanism and endpoints involved are opt-in on the issuer's part, but we should mention it explicitly.  
+- CORS  
+  - It might be valuable to limit this verification mechanism's potential leakage of user state cross-origin by rejecting verification responses that contain `Access-Control-*` headers. (*User agents that limit third-party cookie access would mitigate this leak, but it's worth considering what we'd like the behavior to be for user agents that allow them. With CORS headers, this mechanism would provide a very straightforward user identification mechanism, especially in the ["issue all credentials" alternative discussed above](#heading=h.qd2yaibbowlw).*)  
+  - Perhaps servers should return a signed "nope" response rather than an `authentication_required` error, which seems like it would mitigate some network-level distinctions that could be inferred without access to the RP's private key?  
+- Client-side injection?  
+  - Should we protect `nonce` and “value” from script? [https://bsky.app/profile/sgo.to/post/3mlbpzl3abc2y](https://bsky.app/profile/sgo.to/post/3mlbpzl3abc2y) 
 

@@ -1,0 +1,2007 @@
+<!doctype html><html lang="en">
+ <head>
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+  <title>Email Verification Tokens</title>
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+  <link href="https://www.w3.org/StyleSheets/TR/2021/W3C-UD" rel="stylesheet">
+  <meta content="Bikeshed version d113b2e81, updated Tue Jun 9 14:57:55 2026 -0700" name="generator">
+  <link href="https://samuelgoto.github.io/email-verification-protocol/" rel="canonical">
+  <meta content="0793d0e033ec40f70be43be30f4868bf0cd0d532" name="revision">
+  <meta content="dark light" name="color-scheme">
+  <link href="https://www.w3.org/StyleSheets/TR/2021/dark.css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css">
+<style>/* Boilerplate: style-autolinks */
+.css.css, .property.property, .descriptor.descriptor {
+    color: var(--a-normal-text);
+    font-size: inherit;
+    font-family: inherit;
+}
+.css::before, .property::before, .descriptor::before {
+    content: "‘";
+}
+.css::after, .property::after, .descriptor::after {
+    content: "’";
+}
+.property, .descriptor {
+    /* Don't wrap property and descriptor names */
+    white-space: nowrap;
+}
+.type { /* CSS value <type> */
+    font-style: italic;
+}
+pre .property::before, pre .property::after {
+    content: "";
+}
+[data-link-type="property"]::before,
+[data-link-type="propdesc"]::before,
+[data-link-type="descriptor"]::before,
+[data-link-type="value"]::before,
+[data-link-type="function"]::before,
+[data-link-type="at-rule"]::before,
+[data-link-type="selector"]::before,
+[data-link-type="maybe"]::before {
+    content: "‘";
+}
+[data-link-type="property"]::after,
+[data-link-type="propdesc"]::after,
+[data-link-type="descriptor"]::after,
+[data-link-type="value"]::after,
+[data-link-type="function"]::after,
+[data-link-type="at-rule"]::after,
+[data-link-type="selector"]::after,
+[data-link-type="maybe"]::after {
+    content: "’";
+}
+
+[data-link-type].production::before,
+[data-link-type].production::after,
+.prod [data-link-type]::before,
+.prod [data-link-type]::after {
+    content: "";
+}
+
+[data-link-type=element],
+[data-link-type=element-attr] {
+    font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    font-size: .9em;
+}
+[data-link-type=element]::before { content: "<" }
+[data-link-type=element]::after  { content: ">" }
+
+[data-link-type=biblio] {
+    white-space: pre;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --selflink-text: black;
+        --selflink-bg: silver;
+        --selflink-hover-text: white;
+    }
+}
+</style>
+<style>/* Boilerplate: style-colors */
+/* Any --*-text not paired with a --*-bg is assumed to have a transparent bg */
+:root {
+    color-scheme: light dark;
+
+    --text: black;
+    --bg: white;
+
+    --unofficial-watermark: url(https://www.w3.org/StyleSheets/TR/2016/logos/UD-watermark);
+
+    --logo-bg: #1a5e9a;
+    --logo-active-bg: #c00;
+    --logo-text: white;
+
+    --tocnav-normal-text: #707070;
+    --tocnav-normal-bg: var(--bg);
+    --tocnav-hover-text: var(--tocnav-normal-text);
+    --tocnav-hover-bg: #f8f8f8;
+    --tocnav-active-text: #c00;
+    --tocnav-active-bg: var(--tocnav-normal-bg);
+
+    --tocsidebar-text: var(--text);
+    --tocsidebar-bg: #f7f8f9;
+    --tocsidebar-shadow: rgba(0,0,0,.1);
+    --tocsidebar-heading-text: hsla(203,20%,40%,.7);
+
+    --toclink-text: var(--text);
+    --toclink-underline: #3980b5;
+    --toclink-visited-text: var(--toclink-text);
+    --toclink-visited-underline: #054572;
+
+    --heading-text: #005a9c;
+
+    --hr-text: var(--text);
+
+    --algo-border: #def;
+
+    --del-text: red;
+    --del-bg: transparent;
+    --ins-text: #080;
+    --ins-bg: transparent;
+
+    --a-normal-text: #034575;
+    --a-normal-underline: #bbb;
+    --a-visited-text: var(--a-normal-text);
+    --a-visited-underline: #707070;
+    --a-hover-bg: rgba(75%, 75%, 75%, .25);
+    --a-active-text: #c00;
+    --a-active-underline: #c00;
+
+    --blockquote-border: silver;
+    --blockquote-bg: transparent;
+    --blockquote-text: currentcolor;
+
+    --issue-border: #e05252;
+    --issue-bg: #fbe9e9;
+    --issue-text: var(--text);
+    --issueheading-text: #831616;
+
+    --example-border: #e0cb52;
+    --example-bg: #fcfaee;
+    --example-text: var(--text);
+    --exampleheading-text: #574b0f;
+
+    --note-border: #52e052;
+    --note-bg: #e9fbe9;
+    --note-text: var(--text);
+    --noteheading-text: hsl(120, 70%, 30%);
+    --notesummary-underline: silver;
+
+    --assertion-border: #aaa;
+    --assertion-bg: #eee;
+    --assertion-text: black;
+
+    --advisement-border: orange;
+    --advisement-bg: #fec;
+    --advisement-text: var(--text);
+    --advisementheading-text: #b35f00;
+
+    --warning-border: red;
+    --warning-bg: hsla(40,100%,50%,0.95);
+    --warning-text: var(--text);
+
+    --amendment-border: #330099;
+    --amendment-bg: #F5F0FF;
+    --amendment-text: var(--text);
+    --amendmentheading-text: #220066;
+
+    --def-border: #8ccbf2;
+    --def-bg: #def;
+    --def-text: var(--text);
+    --defrow-border: #bbd7e9;
+
+    --datacell-border: silver;
+
+    --indexinfo-text: #707070;
+
+    --indextable-hover-text: black;
+    --indextable-hover-bg: #f7f8f9;
+
+    --outdatedspec-bg: rgba(0, 0, 0, .5);
+    --outdatedspec-text: black;
+    --outdated-bg: maroon;
+    --outdated-text: white;
+    --outdated-shadow: red;
+
+    --editedrec-bg: darkorange;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text: #ddd;
+        --bg: black;
+
+        --unofficial-watermark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cg fill='%23100808' transform='translate(200 200) rotate(-45) translate(-200 -200)' stroke='%23100808' stroke-width='3'%3E%3Ctext x='50%25' y='220' style='font: bold 70px sans-serif; text-anchor: middle; letter-spacing: 6px;'%3EUNOFFICIAL%3C/text%3E%3Ctext x='50%25' y='305' style='font: bold 70px sans-serif; text-anchor: middle; letter-spacing: 6px;'%3EDRAFT%3C/text%3E%3C/g%3E%3C/svg%3E");
+
+        --logo-bg: #1a5e9a;
+        --logo-active-bg: #c00;
+        --logo-text: white;
+
+        --tocnav-normal-text: #999;
+        --tocnav-normal-bg: var(--bg);
+        --tocnav-hover-text: var(--tocnav-normal-text);
+        --tocnav-hover-bg: #080808;
+        --tocnav-active-text: #f44;
+        --tocnav-active-bg: var(--tocnav-normal-bg);
+
+        --tocsidebar-text: var(--text);
+        --tocsidebar-bg: #080808;
+        --tocsidebar-shadow: rgba(255,255,255,.1);
+        --tocsidebar-heading-text: hsla(203,20%,40%,.7);
+
+        --toclink-text: var(--text);
+        --toclink-underline: #6af;
+        --toclink-visited-text: var(--toclink-text);
+        --toclink-visited-underline: #054572;
+
+        --heading-text: #8af;
+
+        --hr-text: var(--text);
+
+        --algo-border: #456;
+
+        --del-text: #f44;
+        --del-bg: transparent;
+        --ins-text: #4a4;
+        --ins-bg: transparent;
+
+        --a-normal-text: #6af;
+        --a-normal-underline: #555;
+        --a-visited-text: var(--a-normal-text);
+        --a-visited-underline: var(--a-normal-underline);
+        --a-hover-bg: rgba(25%, 25%, 25%, .2);
+        --a-active-text: #f44;
+        --a-active-underline: var(--a-active-text);
+
+        --borderedblock-bg: rgba(255, 255, 255, .05);
+
+        --blockquote-border: silver;
+        --blockquote-bg: var(--borderedblock-bg);
+        --blockquote-text: currentcolor;
+
+        --issue-border: #e05252;
+        --issue-bg: var(--borderedblock-bg);
+        --issue-text: var(--text);
+        --issueheading-text: hsl(0deg, 70%, 70%);
+
+        --example-border: hsl(50deg, 90%, 60%);
+        --example-bg: var(--borderedblock-bg);
+        --example-text: var(--text);
+        --exampleheading-text: hsl(50deg, 70%, 70%);
+
+        --note-border: hsl(120deg, 100%, 35%);
+        --note-bg: var(--borderedblock-bg);
+        --note-text: var(--text);
+        --noteheading-text: hsl(120, 70%, 70%);
+        --notesummary-underline: silver;
+
+        --assertion-border: #444;
+        --assertion-bg: var(--borderedblock-bg);
+        --assertion-text: var(--text);
+
+        --advisement-border: orange;
+        --advisement-bg: #222218;
+        --advisement-text: var(--text);
+        --advisementheading-text: #f84;
+
+        --warning-border: red;
+        --warning-bg: hsla(40,100%,20%,0.95);
+        --warning-text: var(--text);
+
+        --amendment-border: #330099;
+        --amendment-bg: #080010;
+        --amendment-text: var(--text);
+        --amendmentheading-text: #cc00ff;
+
+        --def-border: #8ccbf2;
+        --def-bg: #080818;
+        --def-text: var(--text);
+        --defrow-border: #136;
+
+        --datacell-border: silver;
+
+        --indexinfo-text: #aaa;
+
+        --indextable-hover-text: var(--text);
+        --indextable-hover-bg: #181818;
+
+        --outdatedspec-bg: rgba(255, 255, 255, .5);
+        --outdatedspec-text: black;
+        --outdated-bg: maroon;
+        --outdated-text: white;
+        --outdated-shadow: red;
+
+        --editedrec-bg: darkorange;
+    }
+    /* In case a transparent-bg image doesn't expect to be on a dark bg,
+       which is quite common in practice... */
+    img { background: white; }
+}
+</style>
+<style>/* Boilerplate: style-counters */
+body {
+    counter-reset: example figure issue table;
+}
+.issue {
+    counter-increment: issue;
+}
+.issue:not(.no-marker)::before {
+    content: "Issue " counter(issue);
+}
+
+.example {
+    counter-increment: example;
+}
+.example:not(.no-marker)::before {
+    content: "Example " counter(example);
+}
+.invalid.example:not(.no-marker)::before,
+.illegal.example:not(.no-marker)::before {
+    content: "Invalid Example " counter(example);
+}
+
+figcaption {
+    counter-increment: figure;
+}
+figcaption:not(.no-marker)::before {
+    content: "Figure " counter(figure) " ";
+}
+
+figure.table figcaption {
+    counter-increment: table;
+}
+figure.table figcaption:not(.no-marker)::before {
+    content: "Table " counter(table) " ";
+}
+</style>
+<style>/* Boilerplate: style-dfn-panel */
+:root {
+    --dfnpanel-bg: #ddd;
+    --dfnpanel-text: var(--text);
+    --dfnpanel-target-bg: #ffc;
+    --dfnpanel-target-outline: orange;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --dfnpanel-bg: #222;
+        --dfnpanel-text: var(--text);
+        --dfnpanel-target-bg: #333;
+        --dfnpanel-target-outline: silver;
+    }
+}
+.dfn-panel {
+    position: absolute;
+    z-index: 35;
+    width: 20em;
+    width: 300px;
+    height: auto;
+    max-height: 500px;
+    overflow: auto;
+    padding: 0.5em 0.75em;
+    font: small Helvetica Neue, sans-serif, Droid Sans Fallback;
+    background: var(--dfnpanel-bg);
+    color: var(--dfnpanel-text);
+    border: outset 0.2em;
+    white-space: normal; /* in case it's moved into a pre */
+}
+.dfn-panel:not(.on) { display: none; }
+.dfn-panel * { margin: 0; padding: 0; text-indent: 0; }
+.dfn-panel > b { display: block; }
+.dfn-panel a { color: var(--dfnpanel-text); }
+.dfn-panel a:not(:hover) { text-decoration: none !important; border-bottom: none !important; }
+.dfn-panel a:focus {
+    outline: 5px auto Highlight;
+    outline: 5px auto -webkit-focus-ring-color;
+}
+.dfn-panel > b + b { margin-top: 0.25em; }
+.dfn-panel ul { padding: 0 0 0 1em; list-style: none; }
+.dfn-panel li a {
+    max-width: calc(300px - 1.5em - 1em);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dfn-panel.activated {
+    display: inline-block;
+    position: fixed;
+    left: 8px;
+    bottom: 2em;
+    margin: 0 auto;
+    max-width: calc(100vw - 1.5em - .4em - .5em);
+    max-height: 30vh;
+    transition: left 1s ease-out, bottom 1s ease-out;
+}
+
+.dfn-panel .link-item:hover {
+    text-decoration: underline;
+}
+.dfn-panel .link-item .copy-icon {
+    opacity: 0;
+}
+.dfn-panel .link-item:hover .copy-icon,
+.dfn-panel .link-item .copy-icon:focus {
+    opacity: 1;
+}
+
+.dfn-panel .copy-icon {
+    display: inline-block;
+    margin-right: 0.5em;
+    width: 0.85em;
+    height: 1em;
+    border-radius: 3px;
+    background-color: #ccc;
+    cursor: pointer;
+}
+
+.dfn-panel .copy-icon .icon {
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.dfn-panel .copy-icon .icon::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    background-color: #ccc;
+    opacity: 0.25;
+    transform: translate(3px, -3px);
+}
+
+.dfn-panel .copy-icon:active .icon::before {
+    opacity: 1;
+}
+
+.dfn-paneled[role="button"] { cursor: help; }
+
+.highlighted {
+    animation: target-fade 3s;
+}
+
+@keyframes target-fade {
+    from {
+        background-color: var(--dfnpanel-target-bg);
+        outline: 5px solid var(--dfnpanel-target-outline);
+    }
+    to {
+        color: var(--a-normal-text);
+        background-color: transparent;
+        outline: transparent;
+    }
+}
+</style>
+<style>/* Boilerplate: style-issues */
+a[href].issue-return {
+    float: right;
+    float: inline-end;
+    color: var(--issueheading-text);
+    font-weight: bold;
+    text-decoration: none;
+}
+</style>
+<style>/* Boilerplate: style-md-lists */
+/* This is a weird hack for me not yet following the commonmark spec
+   regarding paragraph and lists. */
+[data-md] > :first-child {
+    margin-top: 0;
+}
+[data-md] > :last-child {
+    margin-bottom: 0;
+}
+</style>
+<style>/* Boilerplate: style-ref-hints */
+:root {
+    --ref-hint-bg: #ddd;
+    --ref-hint-text: var(--text);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ref-hint-bg: #222;
+        --ref-hint-text: var(--text);
+    }
+}
+
+.ref-hint {
+    display: inline-block;
+    position: absolute;
+    z-index: 35;
+    width: 20em;
+    width: 300px;
+    height: auto;
+    max-height: 500px;
+    overflow: auto;
+    padding: 0.5em 0.5em;
+    font: small Helvetica Neue, sans-serif, Droid Sans Fallback;
+    background: var(--ref-hint-bg);
+    color: var(--ref-hint-text);
+    border: outset 0.2em;
+    white-space: normal; /* in case it's moved into a pre */
+}
+
+.ref-hint * { margin: 0; padding: 0; text-indent: 0; }
+
+.ref-hint ul { padding: 0 0 0 1em; list-style: none; }
+</style>
+<style>/* Boilerplate: style-selflinks */
+:root {
+    --selflink-text: white;
+    --selflink-bg: gray;
+    --selflink-hover-text: black;
+}
+.heading, .issue, .note, .example, li, dt {
+    position: relative;
+}
+a.self-link {
+    position: absolute;
+    top: 0;
+    left: calc(-1 * (3.5rem - 26px));
+    width: calc(3.5rem - 26px);
+    height: 2em;
+    text-align: center;
+    border: none;
+    transition: opacity .2s;
+    opacity: .5;
+}
+a.self-link:hover {
+    opacity: 1;
+}
+.heading > a.self-link {
+    font-size: 83%;
+}
+.example > a.self-link,
+.note > a.self-link,
+.issue > a.self-link {
+    /* These blocks are overflow:auto, so positioning outside
+       doesn't work. */
+    left: auto;
+    right: 0;
+}
+li > a.self-link {
+    left: calc(-1 * (3.5rem - 26px) - 2em);
+}
+dfn > a.self-link {
+    top: auto;
+    left: auto;
+    opacity: 0;
+    width: 1.5em;
+    height: 1.5em;
+    background: var(--selflink-bg);
+    color: var(--selflink-text);
+    font-style: normal;
+    transition: opacity .2s, background-color .2s, color .2s;
+}
+dfn:hover > a.self-link {
+    opacity: 1;
+}
+dfn > a.self-link:hover {
+    color: var(--selflink-hover-text);
+}
+
+a.self-link::before            { content: "¶"; }
+.heading > a.self-link::before { content: "§"; }
+dfn > a.self-link::before      { content: "#"; }
+</style>
+<style>/* Boilerplate: style-syntax-highlighting */
+code.highlight { padding: .1em; border-radius: .3em; }
+pre.highlight, pre > code.highlight { display: block; padding: 1em; margin: .5em 0; overflow: auto; border-radius: 0; }
+
+.highlight:not(.idl) { background: rgba(0, 0, 0, .03); }
+c-[a] { color: #990055 } /* Keyword.Declaration */
+c-[b] { color: #990055 } /* Keyword.Type */
+c-[c] { color: #708090 } /* Comment */
+c-[d] { color: #708090 } /* Comment.Multiline */
+c-[e] { color: #0077aa } /* Name.Attribute */
+c-[f] { color: #669900 } /* Name.Tag */
+c-[g] { color: #222222 } /* Name.Variable */
+c-[k] { color: #990055 } /* Keyword */
+c-[l] { color: #000000 } /* Literal */
+c-[m] { color: #000000 } /* Literal.Number */
+c-[n] { color: #0077aa } /* Name */
+c-[o] { color: #999999 } /* Operator */
+c-[p] { color: #999999 } /* Punctuation */
+c-[s] { color: #a67f59 } /* Literal.String */
+c-[t] { color: #a67f59 } /* Literal.String.Single */
+c-[u] { color: #a67f59 } /* Literal.String.Double */
+c-[cp] { color: #708090 } /* Comment.Preproc */
+c-[c1] { color: #708090 } /* Comment.Single */
+c-[cs] { color: #708090 } /* Comment.Special */
+c-[kc] { color: #990055 } /* Keyword.Constant */
+c-[kn] { color: #990055 } /* Keyword.Namespace */
+c-[kp] { color: #990055 } /* Keyword.Pseudo */
+c-[kr] { color: #990055 } /* Keyword.Reserved */
+c-[ld] { color: #000000 } /* Literal.Date */
+c-[nc] { color: #0077aa } /* Name.Class */
+c-[no] { color: #0077aa } /* Name.Constant */
+c-[nd] { color: #0077aa } /* Name.Decorator */
+c-[ni] { color: #0077aa } /* Name.Entity */
+c-[ne] { color: #0077aa } /* Name.Exception */
+c-[nf] { color: #0077aa } /* Name.Function */
+c-[nl] { color: #0077aa } /* Name.Label */
+c-[nn] { color: #0077aa } /* Name.Namespace */
+c-[py] { color: #0077aa } /* Name.Property */
+c-[ow] { color: #999999 } /* Operator.Word */
+c-[mb] { color: #000000 } /* Literal.Number.Bin */
+c-[mf] { color: #000000 } /* Literal.Number.Float */
+c-[mh] { color: #000000 } /* Literal.Number.Hex */
+c-[mi] { color: #000000 } /* Literal.Number.Integer */
+c-[mo] { color: #000000 } /* Literal.Number.Oct */
+c-[sb] { color: #a67f59 } /* Literal.String.Backtick */
+c-[sc] { color: #a67f59 } /* Literal.String.Char */
+c-[sd] { color: #a67f59 } /* Literal.String.Doc */
+c-[se] { color: #a67f59 } /* Literal.String.Escape */
+c-[sh] { color: #a67f59 } /* Literal.String.Heredoc */
+c-[si] { color: #a67f59 } /* Literal.String.Interpol */
+c-[sx] { color: #a67f59 } /* Literal.String.Other */
+c-[sr] { color: #a67f59 } /* Literal.String.Regex */
+c-[ss] { color: #a67f59 } /* Literal.String.Symbol */
+c-[vc] { color: #0077aa } /* Name.Variable.Class */
+c-[vg] { color: #0077aa } /* Name.Variable.Global */
+c-[vi] { color: #0077aa } /* Name.Variable.Instance */
+c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
+
+@media (prefers-color-scheme: dark) {
+    .highlight:not(.idl) { background: rgba(255, 255, 255, .05); }
+
+    c-[a] { color: #d33682 } /* Keyword.Declaration */
+    c-[b] { color: #d33682 } /* Keyword.Type */
+    c-[c] { color: #2aa198 } /* Comment */
+    c-[d] { color: #2aa198 } /* Comment.Multiline */
+    c-[e] { color: #268bd2 } /* Name.Attribute */
+    c-[f] { color: #b58900 } /* Name.Tag */
+    c-[g] { color: #cb4b16 } /* Name.Variable */
+    c-[k] { color: #d33682 } /* Keyword */
+    c-[l] { color: #657b83 } /* Literal */
+    c-[m] { color: #657b83 } /* Literal.Number */
+    c-[n] { color: #268bd2 } /* Name */
+    c-[o] { color: #657b83 } /* Operator */
+    c-[p] { color: #657b83 } /* Punctuation */
+    c-[s] { color: #6c71c4 } /* Literal.String */
+    c-[t] { color: #6c71c4 } /* Literal.String.Single */
+    c-[u] { color: #6c71c4 } /* Literal.String.Double */
+    c-[ch] { color: #2aa198 } /* Comment.Hashbang */
+    c-[cp] { color: #2aa198 } /* Comment.Preproc */
+    c-[cpf] { color: #2aa198 } /* Comment.PreprocFile */
+    c-[c1] { color: #2aa198 } /* Comment.Single */
+    c-[cs] { color: #2aa198 } /* Comment.Special */
+    c-[kc] { color: #d33682 } /* Keyword.Constant */
+    c-[kn] { color: #d33682 } /* Keyword.Namespace */
+    c-[kp] { color: #d33682 } /* Keyword.Pseudo */
+    c-[kr] { color: #d33682 } /* Keyword.Reserved */
+    c-[ld] { color: #657b83 } /* Literal.Date */
+    c-[nc] { color: #268bd2 } /* Name.Class */
+    c-[no] { color: #268bd2 } /* Name.Constant */
+    c-[nd] { color: #268bd2 } /* Name.Decorator */
+    c-[ni] { color: #268bd2 } /* Name.Entity */
+    c-[ne] { color: #268bd2 } /* Name.Exception */
+    c-[nf] { color: #268bd2 } /* Name.Function */
+    c-[nl] { color: #268bd2 } /* Name.Label */
+    c-[nn] { color: #268bd2 } /* Name.Namespace */
+    c-[py] { color: #268bd2 } /* Name.Property */
+    c-[ow] { color: #657b83 } /* Operator.Word */
+    c-[mb] { color: #657b83 } /* Literal.Number.Bin */
+    c-[mf] { color: #657b83 } /* Literal.Number.Float */
+    c-[mh] { color: #657b83 } /* Literal.Number.Hex */
+    c-[mi] { color: #657b83 } /* Literal.Number.Integer */
+    c-[mo] { color: #657b83 } /* Literal.Number.Oct */
+    c-[sa] { color: #6c71c4 } /* Literal.String.Affix */
+    c-[sb] { color: #6c71c4 } /* Literal.String.Backtick */
+    c-[sc] { color: #6c71c4 } /* Literal.String.Char */
+    c-[dl] { color: #6c71c4 } /* Literal.String.Delimiter */
+    c-[sd] { color: #6c71c4 } /* Literal.String.Doc */
+    c-[se] { color: #6c71c4 } /* Literal.String.Escape */
+    c-[sh] { color: #6c71c4 } /* Literal.String.Heredoc */
+    c-[si] { color: #6c71c4 } /* Literal.String.Interpol */
+    c-[sx] { color: #6c71c4 } /* Literal.String.Other */
+    c-[sr] { color: #6c71c4 } /* Literal.String.Regex */
+    c-[ss] { color: #6c71c4 } /* Literal.String.Symbol */
+    c-[fm] { color: #268bd2 } /* Name.Function.Magic */
+    c-[vc] { color: #cb4b16 } /* Name.Variable.Class */
+    c-[vg] { color: #cb4b16 } /* Name.Variable.Global */
+    c-[vi] { color: #cb4b16 } /* Name.Variable.Instance */
+    c-[vm] { color: #cb4b16 } /* Name.Variable.Magic */
+    c-[il] { color: #657b83 } /* Literal.Number.Integer.Long */
+}
+
+@media print {
+    /* Darken colors for print that would otherwise print too faintly */
+    c-[c]  { color: #555555 } /* Comment */
+    c-[d]  { color: #555555 } /* Comment.Multiline */
+    c-[cp] { color: #555555 } /* Comment.Preproc */
+    c-[c1] { color: #555555 } /* Comment.Single */
+    c-[cs] { color: #555555 } /* Comment.Special */
+    c-[o]  { color: #222222 } /* Operator */
+    c-[p]  { color: #222222 } /* Punctuation */
+    c-[ow] { color: #222222 } /* Operator.Word */
+    c-[s]  { color: #664400 } /* Literal.String */
+    c-[t]  { color: #664400 } /* Literal.String.Single */
+    c-[u]  { color: #664400 } /* Literal.String.Double */
+    c-[sb] { color: #664400 } /* Literal.String.Backtick */
+    c-[sc] { color: #664400 } /* Literal.String.Char */
+    c-[sd] { color: #664400 } /* Literal.String.Doc */
+    c-[se] { color: #664400 } /* Literal.String.Escape */
+    c-[sh] { color: #664400 } /* Literal.String.Heredoc */
+    c-[si] { color: #664400 } /* Literal.String.Interpol */
+    c-[sx] { color: #664400 } /* Literal.String.Other */
+    c-[sr] { color: #664400 } /* Literal.String.Regex */
+    c-[ss] { color: #664400 } /* Literal.String.Symbol */
+}
+</style>
+ <body class="h-entry">
+  <div class="head">
+   <h1 class="no-ref p-name" id="title">Email Verification Tokens</h1>
+   <p id="w3c-state"><a href="https://www.w3.org/standards/types/#UD">Unofficial Proposal Draft</a>,
+    <time class="dt-updated" datetime="2026-06-15">15 June 2026</time></p>
+   <div data-fill-with="spec-metadata">
+    <dl>
+     <dt>This version:
+     <dd><a class="u-url" href="https://samuelgoto.github.io/email-verification-protocol/">https://samuelgoto.github.io/email-verification-protocol/</a>
+     <dt>Issue Tracking:
+     <dd><a href="https://github.com/WICG/email-verification-protocol/issues/">GitHub</a>
+     <dt>Authors:
+     <dd>Sam Goto, Google https://google.com, goto@google.com
+     <dd>Dick Hardt, Hellō, dick.hardt@gmail.com
+    </dl>
+   </div>
+   <div data-fill-with="warning"></div>
+   <p class="copyright" data-fill-with="copyright"><a href="https://www.w3.org/policies/#copyright">Copyright</a> © 2026 the Contributors to the Email Verification Tokens Specification, published by the <a href="https://www.w3.org/community/wicg/">Web Platform Incubator Community Group</a> under the <a href="https://www.w3.org/community/about/agreements/cla/">W3C Community Contributor License Agreement (CLA)</a>.
+A human-readable <a href="https://www.w3.org/community/about/agreements/cla-deed/">summary</a> is available.
+</p>
+   <hr title="Separator for header">
+  </div>
+  <div class="p-summary" data-fill-with="abstract">
+   <h2 class="heading no-num no-ref no-toc settled" id="abstract"><span class="content">Abstract</span></h2>
+   <p>This document defines the Email Verification Protocol (EVP), which enables web applications to verify that a user controls an email address without sending a verification email. The protocol uses a three-party model where the browser intermediates between the verifier and an issuer, providing both improved user experience and privacy protection.</p>
+  </div>
+  <div data-fill-with="at-risk"></div>
+  <h2 class="heading no-num no-ref no-toc settled" id="status"><span class="content">Status of this document</span></h2>
+  <div data-fill-with="status">
+   <p>
+  This specification was published by the <a href="https://www.w3.org/community/wicg/">Web Platform Incubator Community Group</a>.
+  It is not a W3C Standard nor is it on the W3C Standards Track.
+
+  Please note that under the
+  <a href="https://www.w3.org/community/about/agreements/cla/">W3C Community Contributor License Agreement (CLA)</a>
+  there is a limited opt-out and other conditions apply.
+
+  Learn more about
+  <a href="https://www.w3.org/community/">W3C Community and Business Groups</a>.
+</p>
+   <p></p>
+  </div>
+  <div data-fill-with="at-risk"></div>
+  <nav data-fill-with="table-of-contents" id="toc">
+   <h2 class="no-num no-ref no-toc" id="contents">Table of Contents</h2>
+   <ol class="toc">
+    <li>
+     <a href="#intro"><span class="secno">1</span> <span class="content">Introduction</span></a>
+     <ol class="toc">
+      <li><a href="#overview"><span class="secno">1.1</span> <span class="content">Protocol Overview</span></a>
+      <li>
+       <a href="#example"><span class="secno">1.2</span> <span class="content">Example</span></a>
+       <ol class="toc">
+        <li><a href="#example-form"><span class="secno">1.2.1</span> <span class="content">Verifier HTML Form</span></a>
+        <li><a href="#example-interaction"><span class="secno">1.2.2</span> <span class="content">Browser Interaction</span></a>
+        <li><a href="#example-submission"><span class="secno">1.2.3</span> <span class="content">Form Submission</span></a>
+       </ol>
+     </ol>
+    <li>
+     <a href="#html-extensions"><span class="secno">2</span> <span class="content">HTML Extensions</span></a>
+     <ol class="toc">
+      <li><a href="#autocomplete-evt"><span class="secno">2.1</span> <span class="content">The <code>email-verification-token</code> Autofill Value</span></a>
+      <li><a href="#input-nonce"><span class="secno">2.2</span> <span class="content">The <code>nonce</code> Attribute on <code>input</code> Elements</span></a>
+     </ol>
+    <li>
+     <a href="#processing-model"><span class="secno">3</span> <span class="content">Browser Processing Model</span></a>
+     <ol class="toc">
+      <li><a href="#autofill-handler"><span class="secno">3.1</span> <span class="content">Handling Autofill Selection</span></a>
+      <li><a href="#form-submission"><span class="secno">3.2</span> <span class="content">Form Submission Integration</span></a>
+      <li><a href="#algo-accounts-validation"><span class="secno">3.3</span> <span class="content"><span>Accounts Validation</span></span></a>
+      <li><a href="#algo-issuance"><span class="secno">3.4</span> <span class="content"><span>EVT Issuance</span></span></a>
+     </ol>
+    <li><a href="#verifier-processing"><span class="secno">4</span> <span class="content">Verifier Processing Model</span></a>
+    <li>
+     <a href="#security-privacy"><span class="secno">5</span> <span class="content">Security and Privacy Considerations</span></a>
+     <ol class="toc">
+      <li>
+       <a href="#privacy-considerations"><span class="secno">5.1</span> <span class="content">Privacy</span></a>
+       <ol class="toc">
+        <li><a href="#blinding-issuer"><span class="secno">5.1.1</span> <span class="content">Blinding the Issuer</span></a>
+        <li><a href="#tracking-risks"><span class="secno">5.1.2</span> <span class="content">Tracking Risks</span></a>
+       </ol>
+      <li>
+       <a href="#security-considerations"><span class="secno">5.2</span> <span class="content">Security</span></a>
+       <ol class="toc">
+        <li><a href="#replay-attacks"><span class="secno">5.2.1</span> <span class="content">Replay Attacks</span></a>
+        <li><a href="#dns-security"><span class="secno">5.2.2</span> <span class="content">DNS Security</span></a>
+       </ol>
+     </ol>
+    <li>
+     <a href="#w3c-conformance"><span class="secno"></span> <span class="content">Conformance</span></a>
+     <ol class="toc">
+      <li><a href="#w3c-conventions"><span class="secno"></span> <span class="content">Document conventions</span></a>
+     </ol>
+    <li>
+     <a href="#index"><span class="secno"></span> <span class="content">Index</span></a>
+     <ol class="toc">
+      <li><a href="#index-defined-here"><span class="secno"></span> <span class="content">Terms defined by this specification</span></a>
+     </ol>
+    <li>
+     <a href="#references"><span class="secno"></span> <span class="content">References</span></a>
+     <ol class="toc">
+      <li><a href="#normative"><span class="secno"></span> <span class="content">Normative References</span></a>
+      <li><a href="#informative"><span class="secno"></span> <span class="content">Non-Normative References</span></a>
+     </ol>
+   </ol>
+  </nav>
+  <main>
+   <h2 class="heading settled" data-level="1" id="intro"><span class="secno">1. </span><span class="content">Introduction</span><a class="self-link" href="#intro"></a></h2>
+   <p>Historically, verifying email addresses during account creation, sign-in, or account recovery has relied on manual, out-of-band mechanisms. A typical flow involves a website sending a one-time passcode (OTP) or a "magic link" to the user’s email address. The user must then navigate to their email inbox, retrieve the code or click the link, and return to the website to prove ownership.</p>
+   <p>This process introduces significant friction, impacting user experience and conversion rates. Furthermore, it is vulnerable to phishing attacks, where a malicious site can trick a user into providing the OTP.</p>
+   <p>The Email Verification Protocol (EVP) introduces a browser-mediated mechanism to verify email ownership cryptographically. By leveraging an active session between the user and their email provider (the issuer), the browser can request a cryptographically signed Email Verification Token (EVT) and present it to the website (the verifier).</p>
+   <p>This specification defines the HTML extensions used by verifiers to request EVTs, and the client-side browser behavior to coordinate with issuers to acquire tokens.</p>
+   <h3 class="heading settled" data-level="1.1" id="overview"><span class="secno">1.1. </span><span class="content">Protocol Overview</span><a class="self-link" href="#overview"></a></h3>
+   <p>The protocol involves three main parties:</p>
+   <ul>
+    <li data-md>
+     <p>The <strong>Verifier</strong>: The website requesting email verification.</p>
+    <li data-md>
+     <p>The <strong>User Agent (UA)</strong>: The browser intermediating the request.</p>
+    <li data-md>
+     <p>The <strong>Issuer</strong>: The email provider authoritative for the email address.</p>
+   </ul>
+   <p>A typical flow consists of the following steps:</p>
+   <ol>
+    <li data-md>
+     <p><strong>Login</strong>: The user logs in to their email provider. The provider updates the browser’s login status to <a href="https://w3c-fedid.github.io/login-status/#logged-in">logged-in</a> (using the <a data-link-type="biblio" href="#biblio-login-status" title="Login Status API">Login Status API</a>).</p>
+    <li data-md>
+     <p><strong>Request</strong>: The verifier’s website includes a hidden input field with <code>autocomplete="email-verification-token"</code> and a <code>nonce</code> attribute.</p>
+    <li data-md>
+     <p><strong>Discovery &amp; Validation</strong>: When the user selects an email address (e.g., via autofill), the UA discovers the authoritative issuer via DNS. The UA checks if the user has an active session with that issuer.</p>
+    <li data-md>
+     <p><strong>Issuance</strong>: The UA requests an EVT from the issuer.</p>
+    <li data-md>
+     <p><strong>Binding &amp; Presentation</strong>: The UA binds the verifier’s origin and nonce to the EVT, creating a Key-Bound JWT (KB-JWT), and fills it into the verifier’s input field before form submission.</p>
+    <li data-md>
+     <p><strong>Verification</strong>: The verifier verifies the EVT and KB-JWT to complete the verification.</p>
+   </ol>
+   <h3 class="heading settled" data-level="1.2" id="example"><span class="secno">1.2. </span><span class="content">Example</span><a class="self-link" href="#example"></a></h3>
+   <p>This section is non-normative.</p>
+   <p>Consider a verifier website <code>https://rp.example</code> that wants to verify a user’s email address during sign-up.</p>
+   <h4 class="heading settled" data-level="1.2.1" id="example-form"><span class="secno">1.2.1. </span><span class="content">Verifier HTML Form</span><a class="self-link" href="#example-form"></a></h4>
+   <p>The verifier includes a standard email input and a hidden input for the Email Verification Token (EVT), with <code>autocomplete="email-verification-token"</code> and a unique <code>nonce</code>:</p>
+<pre class="highlight language-html"><c- p>&lt;</c-><c- f>form</c-> <c- e>action</c-><c- o>=</c-><c- s>"/signup"</c-> <c- e>method</c-><c- o>=</c-><c- s>"post"</c-><c- p>></c->
+  <c- p>&lt;</c-><c- f>label</c-> <c- e>for</c-><c- o>=</c-><c- s>"email"</c-><c- p>></c->Email address:<c- p>&lt;/</c-><c- f>label</c-><c- p>></c->
+  <c- p>&lt;</c-><c- f>input</c-> <c- e>type</c-><c- o>=</c-><c- s>"email"</c-> <c- e>id</c-><c- o>=</c-><c- s>"email"</c-> <c- e>name</c-><c- o>=</c-><c- s>"email"</c-> <c- e>autocomplete</c-><c- o>=</c-><c- s>"email"</c-><c- p>></c->
+
+  <c- d>&lt;!-- EVP hidden input --></c->
+  <c- p>&lt;</c-><c- f>input</c-> <c- e>type</c-><c- o>=</c-><c- s>"hidden"</c-> <c- e>name</c-><c- o>=</c-><c- s>"evt"</c-> 
+         <c- e>autocomplete</c-><c- o>=</c-><c- s>"email-verification-token"</c-> 
+         <c- e>nonce</c-><c- o>=</c-><c- s>"xyz123456789"</c-><c- p>></c->
+
+  <c- p>&lt;</c-><c- f>button</c-> <c- e>type</c-><c- o>=</c-><c- s>"submit"</c-><c- p>></c->Sign Up<c- p>&lt;/</c-><c- f>button</c-><c- p>></c->
+<c- p>&lt;/</c-><c- f>form</c-><c- p>></c->
+</pre>
+   <h4 class="heading settled" data-level="1.2.2" id="example-interaction"><span class="secno">1.2.2. </span><span class="content">Browser Interaction</span><a class="self-link" href="#example-interaction"></a></h4>
+   <ol>
+    <li data-md>
+     <p>When the user focuses the <code>email</code> input, the browser suggests autofill email addresses (e.g., <code>user@email.example</code>).</p>
+    <li data-md>
+     <p>The user selects <code>user@email.example</code>.</p>
+    <li data-md>
+     <p>The browser performs issuer discovery (finding <code>email.example</code> delegates to <code>issuer.example</code>), validates the user’s session with the issuer, and shows a prompt:
+<strong>Verify your email?</strong>
+Do you want to share a verified token for <code>user@email.example</code> with <code>rp.example</code>?
+[Allow] [Deny]</p>
+    <li data-md>
+     <p>If the user selects "Allow", the browser fetches the EVT from <code>issuer.example</code>, binds it to <code>rp.example</code> and the nonce <code>xyz123456789</code>, and stores the bound token.</p>
+   </ol>
+   <h4 class="heading settled" data-level="1.2.3" id="example-submission"><span class="secno">1.2.3. </span><span class="content">Form Submission</span><a class="self-link" href="#example-submission"></a></h4>
+   <p>When the user submits the form, the browser automatically injects the bound token into the hidden input field. The verifier receives the following POST payload:</p>
+<pre class="highlight language-http"><c- nf>POST</c-> <c- nn>/signup</c-> <c- kr>HTTP</c-><c- o>/</c-><c- m>1.1</c->
+<c- e>Host</c-><c- o>:</c-> <c- l>rp.example</c->
+<c- e>Content-Type</c-><c- o>:</c-> <c- l>application/x-www-form-urlencoded</c->
+
+<c- f>email</c-><c- o>=</c-><c- s>user%40email.example</c-><c- p>&amp;</c-><c- f>evt</c-><c- o>=</c-><c- s>eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMjQtMDgtMTkiLCJ0eXAiOiJldnQrand0In0...</c->
+</pre>
+   <p>The verifier then parses and verifies the <code>evt</code> token (verifying the signature, origin <code>rp.example</code>, nonce <code>xyz123456789</code>, and matching the email <code>user@email.example</code>) to complete the registration without needing to send a verification email.</p>
+   <h2 class="heading settled" data-level="2" id="html-extensions"><span class="secno">2. </span><span class="content">HTML Extensions</span><a class="self-link" href="#html-extensions"></a></h2>
+   <p>This specification extends the HTML standard <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a> by introducing a new autofill field name and extending the use of the <code>nonce</code> attribute.</p>
+   <h3 class="heading settled" data-level="2.1" id="autocomplete-evt"><span class="secno">2.1. </span><span class="content">The <code>email-verification-token</code> Autofill Value</span><a class="self-link" href="#autocomplete-evt"></a></h3>
+   <p>The <dfn class="dfn-paneled" data-dfn-type="dfn" data-export id="email-verification-token">email-verification-token</dfn> keyword is added to the list of autofill field names (specifically, detail tokens) defined in <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a>.</p>
+   <p>When an <code>&lt;input></code> element has its <code>autocomplete</code> attribute set to <code>email-verification-token</code>, it indicates that the User Agent SHOULD attempt to fill this field with a cryptographically bound Email Verification Token (EVT) upon form submission, provided the user has selected and verified an email address in the same form.</p>
+   <p>Typically, this keyword is used on <code>&lt;input type="hidden"></code> elements.</p>
+   <h3 class="heading settled" data-level="2.2" id="input-nonce"><span class="secno">2.2. </span><span class="content">The <code>nonce</code> Attribute on <code>input</code> Elements</span><a class="self-link" href="#input-nonce"></a></h3>
+   <p>This specification extends the <dfn class="dfn-paneled" data-dfn-for="input" data-dfn-type="element-attr" data-export id="element-attrdef-input-nonce"><code>nonce</code></dfn> attribute, originally defined for <code>&lt;script></code> and <code>&lt;style></code> elements in <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a> (and used in Content Security Policy <a data-link-type="biblio" href="#biblio-csp" title="Content Security Policy Level 3">[CSP]</a>), to <code>&lt;input></code> elements.</p>
+   <p>When present on an <code>&lt;input></code> element with <code>autocomplete="email-verification-token"</code>, the <code>nonce</code> attribute contains a server-side generated, cryptographically strong random value (a cryptographic nonce).</p>
+   <p>This nonce is used to bind the resulting EVT to a specific form presentation, preventing replay attacks.</p>
+   <p>The value of the <code>nonce</code> attribute MUST be unique for each page rendering.</p>
+   <h2 class="heading settled" data-level="3" id="processing-model"><span class="secno">3. </span><span class="content">Browser Processing Model</span><a class="self-link" href="#processing-model"></a></h2>
+   <h3 class="heading settled" data-level="3.1" id="autofill-handler"><span class="secno">3.1. </span><span class="content">Handling Autofill Selection</span><a class="self-link" href="#autofill-handler"></a></h3>
+   <p>When the user selects an email address <var>email</var> from the user agent’s autofill suggestions for an <code>&lt;input></code> element <var>emailInput</var> within a <code>&lt;form></code> <var>form</var>:</p>
+   <ol>
+    <li data-md>
+     <p>Let <var>evtInput</var> be the first <code>&lt;input></code> element in <var>form</var> that has an <code>autocomplete</code> attribute whose value is <code>email-verification-token</code>.</p>
+    <li data-md>
+     <p>If no such <var>evtInput</var> exists, terminate these steps.</p>
+    <li data-md>
+     <p>Let <var>nonce</var> be the value of the <code>nonce</code> attribute of <var>evtInput</var>.</p>
+    <li data-md>
+     <p>If <var>nonce</var> is empty, terminate these steps.</p>
+    <li data-md>
+     <p>Set <var>form</var>’s EVP state to:</p>
+     <ul>
+      <li data-md>
+       <p><code>email</code>: <var>email</var></p>
+      <li data-md>
+       <p><code>inputElement</code>: <var>emailInput</var></p>
+      <li data-md>
+       <p><code>token</code>: null</p>
+     </ul>
+    <li data-md>
+     <p>In the background, perform the following steps:</p>
+     <ol>
+      <li data-md>
+       <p>Let <var>issuer</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery">issuer discovery</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>email</var>.</p>
+      <li data-md>
+       <p>If <var>issuer</var> is null, terminate these steps.</p>
+      <li data-md>
+       <p>Let <var>accountMatch</var> be the result of performing <a data-link-type="dfn" href="#accounts-validation" id="ref-for-accounts-validation">Accounts Validation</a> on <var>email</var> with <var>issuer</var>.</p>
+      <li data-md>
+       <p>If <var>accountMatch</var> is false, terminate these steps.</p>
+      <li data-md>
+       <p>Show a user prompt asking for permission to verify the email address <var>email</var> with <var>issuer</var>.</p>
+      <li data-md>
+       <p>If the user denies permission, terminate these steps.</p>
+      <li data-md>
+       <p>Let <var>evtResult</var> be the result of performing <a data-link-type="dfn" href="#evt-issuance" id="ref-for-evt-issuance">EVT Issuance</a> for <var>email</var> from <var>issuer</var>.</p>
+      <li data-md>
+       <p>If <var>evtResult</var> is null, terminate these steps.</p>
+      <li data-md>
+       <p>Let <var>evt</var> be <var>evtResult</var>[0].</p>
+      <li data-md>
+       <p>Let <var>keyPair</var> be <var>evtResult</var>[1].</p>
+      <li data-md>
+       <p>Let <var>kbEvt</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation">key-binding creation</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>evt</var> using the private key component of <var>keyPair</var>, with <var>nonce</var> and the origin of the document.</p>
+      <li data-md>
+       <p>Let <var>state</var> be <var>form</var>’s EVP state.</p>
+      <li data-md>
+       <p>If <var>state</var> is not null and <var>state</var>’s <code>email</code> is case-insensitively equal to <var>email</var>:</p>
+       <ol>
+        <li data-md>
+         <p>Set <var>state</var>’s <code>token</code> to <var>kbEvt</var>.</p>
+       </ol>
+     </ol>
+   </ol>
+   <h3 class="heading settled" data-level="3.2" id="form-submission"><span class="secno">3.2. </span><span class="content">Form Submission Integration</span><a class="self-link" href="#form-submission"></a></h3>
+   <p>When a <code>&lt;form></code> <var>form</var> is submitted:</p>
+   <ol>
+    <li data-md>
+     <p>Let <var>state</var> be <var>form</var>’s EVP state.</p>
+    <li data-md>
+     <p>If <var>state</var> is null or <var>state</var>’s <code>token</code> is null, continue with standard form submission steps.</p>
+    <li data-md>
+     <p>Let <var>currentEmail</var> be the value of <var>state</var>’s <code>inputElement</code>.</p>
+    <li data-md>
+     <p>If <var>currentEmail</var> is case-insensitively equal to <var>state</var>’s <code>email</code>:</p>
+     <ol>
+      <li data-md>
+       <p>Let <var>evtInput</var> be the first <code>&lt;input></code> element in <var>form</var> that has an <code>autocomplete</code> attribute whose value is <code>email-verification-token</code>.</p>
+      <li data-md>
+       <p>If <var>evtInput</var> exists:</p>
+       <ol>
+        <li data-md>
+         <p>Set the value of <var>evtInput</var> to <var>state</var>’s <code>token</code>.</p>
+       </ol>
+     </ol>
+    <li data-md>
+     <p>Continue with the standard form submission steps defined in <a data-link-type="biblio" href="#biblio-html" title="HTML Standard">[HTML]</a>.</p>
+   </ol>
+   <h3 class="heading settled" data-level="3.3" id="algo-accounts-validation"><span class="secno">3.3. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="accounts-validation">Accounts Validation</dfn></span><a class="self-link" href="#algo-accounts-validation"></a></h3>
+   <p>Given an email address <var>email</var> and an issuer domain <var>issuer</var>, the user agent MUST perform the following steps to validate the accounts:</p>
+   <ol>
+    <li data-md>
+     <p>Check the login status of <var>issuer</var> using the Login Status API <a data-link-type="biblio" href="#biblio-login-status" title="Login Status API">[login-status]</a>.</p>
+    <li data-md>
+     <p>If the status is <a href="https://w3c-fedid.github.io/login-status/#logged-out">logged-out</a>, return false.</p>
+    <li data-md>
+     <p>Let <var>wellKnown</var> be the result of fetching the <a href="https://w3c-fedid.github.io/FedCM/#well-known-file">well-known file</a> for <var>issuer</var> as defined in <a data-link-type="biblio" href="#biblio-fedcm" title="Federated Credential Management API">[fedcm]</a>.</p>
+    <li data-md>
+     <p>If <var>wellKnown</var> is null, return false.</p>
+    <li data-md>
+     <p>Let <var>accountsEndpoint</var> be the value of the <code>accounts_endpoint</code> member of <var>wellKnown</var>.</p>
+    <li data-md>
+     <p>If <var>accountsEndpoint</var> is not present or is not a valid URL, return false.</p>
+    <li data-md>
+     <p>Let <var>accounts</var> be the result of executing the <a href="https://w3c-fedid.github.io/FedCM/#fetch-accounts">fetch accounts</a> algorithm defined in <a data-link-type="biblio" href="#biblio-fedcm" title="Federated Credential Management API">[fedcm]</a> for <var>issuer</var> and <var>accountsEndpoint</var>.</p>
+    <li data-md>
+     <p>If <var>accounts</var> is null or empty, return false.</p>
+    <li data-md>
+     <p>For each <var>account</var> in <var>accounts</var>:</p>
+     <ol>
+      <li data-md>
+       <p>Let <var>accountEmail</var> be the value of the <code>email</code> member of <var>account</var>.</p>
+      <li data-md>
+       <p>If <var>accountEmail</var> is case-insensitively equal to <var>email</var>, return true.</p>
+     </ol>
+    <li data-md>
+     <p>Return false.</p>
+   </ol>
+   <h3 class="heading settled" data-level="3.4" id="algo-issuance"><span class="secno">3.4. </span><span class="content"><dfn class="dfn-paneled" data-dfn-type="dfn" data-noexport id="evt-issuance">EVT Issuance</dfn></span><a class="self-link" href="#algo-issuance"></a></h3>
+   <p>Given an email address <var>email</var> and an issuer domain <var>issuer</var>, the user agent MUST perform the following steps to obtain an EVT:</p>
+   <ol>
+    <li data-md>
+     <p>Generate an ephemeral asymmetric key pair <var>keyPair</var> (using an algorithm supported by the issuer, as defined in the issuer’s metadata, defaulting to Ed25519 if not specified).</p>
+    <li data-md>
+     <p>Construct a JSON Web Token <a data-link-type="biblio" href="#biblio-jwt" title="JSON Web Token (JWT)">[JWT]</a> <var>requestToken</var>:</p>
+     <ol>
+      <li data-md>
+       <p>The header MUST contain:</p>
+       <ul>
+        <li data-md>
+         <p><code>alg</code>: The signing algorithm (matching <var>keyPair</var>’s algorithm).</p>
+        <li data-md>
+         <p><code>jwk</code>: The public key component of <var>keyPair</var>.</p>
+       </ul>
+      <li data-md>
+       <p>The payload MUST contain:</p>
+       <ul>
+        <li data-md>
+         <p><code>aud</code>: The <var>issuer</var>’s identifier (domain).</p>
+        <li data-md>
+         <p><code>iat</code>: The current time.</p>
+        <li data-md>
+         <p><code>email</code>: The <var>email</var> address.</p>
+       </ul>
+      <li data-md>
+       <p>Sign <var>requestToken</var> using the private key component of <var>keyPair</var>.</p>
+     </ol>
+    <li data-md>
+     <p>Let <var>issuanceUrl</var> be the issuer’s token issuance endpoint (obtained from the issuer’s metadata).</p>
+    <li data-md>
+     <p>Construct an HTTP POST request <var>request</var> to <var>issuanceUrl</var>:</p>
+     <ol>
+      <li data-md>
+       <p>Set the <code>Content-Type</code> header to <code>application/x-www-form-urlencoded</code>.</p>
+      <li data-md>
+       <p>Set the <code>Sec-Fetch-Dest</code> header to <code>email-verification</code>.</p>
+      <li data-md>
+       <p>Include first-party cookies for <var>issuer</var>.</p>
+      <li data-md>
+       <p>Set the request body to the URL-encoded representation of:
+<code>request_token</code> = <var>requestToken</var> (serialized as a string).</p>
+     </ol>
+    <li data-md>
+     <p>Send <var>request</var> and wait for the response <var>callResponse</var>.</p>
+    <li data-md>
+     <p>If <var>callResponse</var>’s status code is not 200 OK or its <code>Content-Type</code> is not <code>application/json</code>, return null.</p>
+    <li data-md>
+     <p>Parse <var>callResponse</var>’s body as JSON and let <var>json</var> be the result.</p>
+    <li data-md>
+     <p>If <var>json</var> does not contain <code>issuance_token</code>, return null.</p>
+    <li data-md>
+     <p>Let <var>evt</var> be <var>json</var>’s <code>issuance_token</code>.</p>
+    <li data-md>
+     <p>Verify <var>evt</var>:</p>
+     <ol>
+      <li data-md>
+       <p>Verify <var>evt</var> is a valid SD-JWT <a data-link-type="biblio" href="#biblio-sd-jwt" title="Selective Disclosure for JSON Web Tokens (SD-JWT)">[SD-JWT]</a> signed by the issuer.</p>
+      <li data-md>
+       <p>Verify the <code>cnf</code> claim in <var>evt</var> contains a public key that matches the public key of <var>keyPair</var>.</p>
+      <li data-md>
+       <p>Verify the <code>email</code> claim in <var>evt</var> matches <var>email</var>.</p>
+     </ol>
+    <li data-md>
+     <p>If verification fails, return null.</p>
+    <li data-md>
+     <p>Return a tuple containing (<var>evt</var>, <var>keyPair</var>).</p>
+   </ol>
+   <h2 class="heading settled" data-level="4" id="verifier-processing"><span class="secno">4. </span><span class="content">Verifier Processing Model</span><a class="self-link" href="#verifier-processing"></a></h2>
+   <p>When a verifier receives a submitted form containing an email address <var>email</var> and a bound token <var>boundToken</var> (from the input field with <code>autocomplete="email-verification-token"</code>):</p>
+   <ol>
+    <li data-md>
+     <p>Perform the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification">token verification</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>boundToken</var> for the verifier’s origin and the expected nonce.</p>
+    <li data-md>
+     <p>If the verification fails, fail verification.</p>
+    <li data-md>
+     <p>Let <var>verifiedEmail</var> be the email address extracted from the verified token.</p>
+    <li data-md>
+     <p>If <var>verifiedEmail</var> is not case-insensitively equal to <var>email</var>, fail verification.</p>
+    <li data-md>
+     <p>Otherwise, verification succeeds.</p>
+   </ol>
+   <h2 class="heading settled" data-level="5" id="security-privacy"><span class="secno">5. </span><span class="content">Security and Privacy Considerations</span><a class="self-link" href="#security-privacy"></a></h2>
+   <h3 class="heading settled" data-level="5.1" id="privacy-considerations"><span class="secno">5.1. </span><span class="content">Privacy</span><a class="self-link" href="#privacy-considerations"></a></h3>
+   <h4 class="heading settled" data-level="5.1.1" id="blinding-issuer"><span class="secno">5.1.1. </span><span class="content">Blinding the Issuer</span><a class="self-link" href="#blinding-issuer"></a></h4>
+   
+A key privacy goal of EVP is to prevent the issuer from learning which verifier the user is interacting with.
+
+
+   <p>The User Agent MUST ensure that the Well-Known fetch and the Accounts fetch do not leak the verifier’s origin.
+The Issuance request, although credentialed, MUST NOT include the verifier’s origin in the request headers (e.g., <code>Referer</code> or <code>Origin</code> MUST be omitted).</p>
+   <h4 class="heading settled" data-level="5.1.2" id="tracking-risks"><span class="secno">5.1.2. </span><span class="content">Tracking Risks</span><a class="self-link" href="#tracking-risks"></a></h4>
+   
+Since the issuance request uses cookies, the issuer learns that the user is active. However, it only learns this when the user actively selects their email for verification, which is a user-initiated action.
+
+
+   <h3 class="heading settled" data-level="5.2" id="security-considerations"><span class="secno">5.2. </span><span class="content">Security</span><a class="self-link" href="#security-considerations"></a></h3>
+   <h4 class="heading settled" data-level="5.2.1" id="replay-attacks"><span class="secno">5.2.1. </span><span class="content">Replay Attacks</span><a class="self-link" href="#replay-attacks"></a></h4>
+   
+The presentation token (EVT+KB) is bound to a specific <code>nonce</code> and <code>audience</code> (verifier origin) via the Key-Binding JWT.
+Verifiers MUST verify:
+
+   <ol>
+    <li data-md>
+     <p>The <code>audience</code> matches their origin.</p>
+    <li data-md>
+     <p>The <code>nonce</code> matches the one they generated for the form presentation.</p>
+    <li data-md>
+     <p>The <code>exp</code> claim has not expired.</p>
+   </ol>
+   <p>This prevents an attacker from intercepting an EVT+KB and replaying it to another site or in a different context.</p>
+   <h4 class="heading settled" data-level="5.2.2" id="dns-security"><span class="secno">5.2.2. </span><span class="content">DNS Security</span><a class="self-link" href="#dns-security"></a></h4>
+   
+Issuer discovery relies on DNS TXT records. If DNS is compromised, an attacker could redirect discovery to a malicious issuer.
+To mitigate this, User Agents SHOULD use secure DNS (DNS-over-HTTPS or DNS-over-TLS) and check DNSSEC signatures if available.
+Furthermore, the issuer MUST match the email domain (unless delegated explicitly and securely).
+
+
+
+
+
+  </main>
+  <div data-fill-with="conformance">
+   <h2 class="heading no-num no-ref settled" id="w3c-conformance"><span class="content">Conformance</span><a class="self-link" href="#w3c-conformance"></a></h2>
+   <h3 class="heading no-num no-ref settled" id="w3c-conventions"><span class="content">Document conventions</span><a class="self-link" href="#w3c-conventions"></a></h3>
+   <p>Conformance requirements are expressed
+    with a combination of descriptive assertions
+    and RFC 2119 terminology.
+    The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL”
+    in the normative parts of this document
+    are to be interpreted as described in RFC 2119.
+    However, for readability,
+    these words do not appear in all uppercase letters in this specification.
+
+    </p>
+   <p>All of the text of this specification is normative
+    except sections explicitly marked as non-normative, examples, and notes. <a data-link-type="biblio" href="#biblio-rfc2119" title="Key words for use in RFCs to Indicate Requirement Levels">[RFC2119]</a>
+
+    </p>
+   <p>Examples in this specification are introduced with the words “for example”
+    or are set apart from the normative text
+    with <code>class="example"</code>,
+    like this:
+
+    </p>
+   <div class="example" id="w3c-example">
+    <a class="self-link" href="#w3c-example"></a>
+        
+    <p>This is an example of an informative example.
+    </p>
+   </div>
+   <p>Informative notes begin with the word “Note”
+    and are set apart from the normative text
+    with <code>class="note"</code>,
+    like this:
+
+    </p>
+   <p class="note" role="note">Note, this is an informative note.</p>
+  </div>
+  <script src="https://www.w3.org/scripts/TR/2021/fixup.js"></script>
+  <h2 class="heading no-num no-ref settled" id="index"><span class="content">Index</span><a class="self-link" href="#index"></a></h2>
+  <h3 class="heading no-num no-ref settled" id="index-defined-here"><span class="content">Terms defined by this specification</span><a class="self-link" href="#index-defined-here"></a></h3>
+  <ul class="index">
+   <li><a href="#accounts-validation">Accounts Validation</a><span>, in § 3.3</span>
+   <li><a href="#email-verification-token">email-verification-token</a><span>, in § 2.1</span>
+   <li><a href="#evt-issuance">EVT Issuance</a><span>, in § 3.4</span>
+   <li><a href="#element-attrdef-input-nonce">nonce</a><span>, in § 2.2</span>
+  </ul>
+  <h2 class="heading no-num no-ref settled" id="references"><span class="content">References</span><a class="self-link" href="#references"></a></h2>
+  <h3 class="heading no-num no-ref settled" id="normative"><span class="content">Normative References</span><a class="self-link" href="#normative"></a></h3>
+  <dl>
+   <dt id="biblio-evp-protocol">[EVP-Protocol]
+   <dd>Dick Hardt; Sam Goto. <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html"><cite>Email Verification Protocol (EVP) Backend</cite></a>. Internet-Draft. URL: <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html">https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html</a>
+   <dt id="biblio-fedcm">[FEDCM]
+   <dd>Nicolas Pena Moreno. <a href="https://w3c-fedid.github.io/FedCM/"><cite>Federated Credential Management API</cite></a>. URL: <a href="https://w3c-fedid.github.io/FedCM/">https://w3c-fedid.github.io/FedCM/</a>
+   <dt id="biblio-login-status">[LOGIN-STATUS]
+   <dd><a href="https://w3c-fedid.github.io/login-status/"><cite>Login Status API</cite></a>. Editor's Draft. URL: <a href="https://w3c-fedid.github.io/login-status/">https://w3c-fedid.github.io/login-status/</a>
+   <dt id="biblio-rfc2119">[RFC2119]
+   <dd>S. Bradner. <a href="https://datatracker.ietf.org/doc/html/rfc2119"><cite>Key words for use in RFCs to Indicate Requirement Levels</cite></a>. March 1997. Best Current Practice. URL: <a href="https://datatracker.ietf.org/doc/html/rfc2119">https://datatracker.ietf.org/doc/html/rfc2119</a>
+  </dl>
+  <h3 class="heading no-num no-ref settled" id="informative"><span class="content">Non-Normative References</span><a class="self-link" href="#informative"></a></h3>
+  <dl>
+   <dt id="biblio-csp">[CSP]
+   <dd>Mike West; Antonio Sartori. <a href="https://w3c.github.io/webappsec-csp/"><cite>Content Security Policy Level 3</cite></a>. URL: <a href="https://w3c.github.io/webappsec-csp/">https://w3c.github.io/webappsec-csp/</a>
+   <dt id="biblio-html">[HTML]
+   <dd>Anne van Kesteren; et al. <a href="https://html.spec.whatwg.org/multipage/"><cite>HTML Standard</cite></a>. Living Standard. URL: <a href="https://html.spec.whatwg.org/multipage/">https://html.spec.whatwg.org/multipage/</a>
+   <dt id="biblio-jwt">[JWT]
+   <dd>M. Jones; J. Bradley; N. Sakimura. <a href="https://www.rfc-editor.org/rfc/rfc7519"><cite>JSON Web Token (JWT)</cite></a>. May 2015. Proposed Standard. URL: <a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>
+   <dt id="biblio-sd-jwt">[SD-JWT]
+   <dd>D. Fett; K. Yasuda; B. Campbell. <a href="https://www.rfc-editor.org/rfc/rfc9682.html"><cite>Selective Disclosure for JSON Web Tokens (SD-JWT)</cite></a>. RFC. URL: <a href="https://www.rfc-editor.org/rfc/rfc9682.html">https://www.rfc-editor.org/rfc/rfc9682.html</a>
+  </dl>
+<script>/* Boilerplate: script-dom-helper */
+"use strict";
+function query(sel) { return document.querySelector(sel); }
+
+function queryAll(sel) { return [...document.querySelectorAll(sel)]; }
+
+function iter(obj) {
+	if(!obj) return [];
+	var it = obj[Symbol.iterator];
+	if(it) return it;
+	return Object.entries(obj);
+}
+
+function mk(tagname, attrs, ...children) {
+	const el = document.createElement(tagname);
+	for(const [k,v] of iter(attrs)) {
+		if(k.slice(0,3) == "_on") {
+			const eventName = k.slice(3);
+			el.addEventListener(eventName, v);
+		} else if(k[0] == "_") {
+			// property, not attribute
+			el[k.slice(1)] = v;
+		} else {
+			if(v === false || v == null) {
+        continue;
+      } else if(v === true) {
+        el.setAttribute(k, "");
+        continue;
+      } else {
+  			el.setAttribute(k, v);
+      }
+		}
+	}
+	append(el, children);
+	return el;
+}
+
+/* Create shortcuts for every known HTML element */
+[
+  "a",
+  "abbr",
+  "acronym",
+  "address",
+  "applet",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "base",
+  "basefont",
+  "bdo",
+  "big",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "center",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "datalist",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "embed",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "font",
+  "footer",
+  "form",
+  "frame",
+  "frameset",
+  "head",
+  "header",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "html",
+  "i",
+  "iframe",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "map",
+  "mark",
+  "meta",
+  "meter",
+  "nav",
+  "nobr",
+  "noscript",
+  "object",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "param",
+  "pre",
+  "progress",
+  "q",
+  "s",
+  "samp",
+  "script",
+  "section",
+  "select",
+  "small",
+  "source",
+  "span",
+  "strike",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "title",
+  "tr",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr",
+  "xmp",
+].forEach(tagname=>{
+	mk[tagname] = (...args) => mk(tagname, ...args);
+});
+
+function* nodesFromChildList(children) {
+	for(const child of children.flat(Infinity)) {
+		if(child instanceof Node) {
+			yield child;
+		} else {
+			yield new Text(child);
+		}
+	}
+}
+function append(el, ...children) {
+	for(const child of nodesFromChildList(children)) {
+		if(el instanceof Node) el.appendChild(child);
+		else el.push(child);
+	}
+	return el;
+}
+
+function insertAfter(el, ...children) {
+	for(const child of nodesFromChildList(children)) {
+		el.parentNode.insertBefore(child, el.nextSibling);
+	}
+	return el;
+}
+
+function clearContents(el) {
+	el.innerHTML = "";
+	return el;
+}
+
+function parseHTML(markup) {
+	if(markup.toLowerCase().trim().indexOf('<!doctype') === 0) {
+		const doc = document.implementation.createHTMLDocument("");
+		doc.documentElement.innerHTML = markup;
+		return doc;
+	} else {
+		const el = mk.template({});
+		el.innerHTML = markup;
+		return el.content;
+	}
+}</script>
+<script>/* Boilerplate: script-dfn-panel */
+"use strict";
+{
+let dfnPanelData = {
+"accounts-validation": {"dfnID":"accounts-validation","dfnText":"Accounts Validation","external":false,"refSections":[{"refs":[{"id":"ref-for-accounts-validation"}],"title":"3.1. Handling Autofill Selection"}],"url":"#accounts-validation"},
+"element-attrdef-input-nonce": {"dfnID":"element-attrdef-input-nonce","dfnText":"nonce","external":false,"refSections":[],"url":"#element-attrdef-input-nonce"},
+"email-verification-token": {"dfnID":"email-verification-token","dfnText":"email-verification-token","external":false,"refSections":[],"url":"#email-verification-token"},
+"evt-issuance": {"dfnID":"evt-issuance","dfnText":"EVT Issuance","external":false,"refSections":[{"refs":[{"id":"ref-for-evt-issuance"}],"title":"3.1. Handling Autofill Selection"}],"url":"#evt-issuance"},
+};
+
+document.addEventListener("DOMContentLoaded", ()=>{
+    genAllDfnPanels();
+
+    document.body.addEventListener("click", (e) => {
+        // If not handled already, just hide all dfn panels.
+        hideAllDfnPanels();
+    });
+});
+
+window.addEventListener("resize", () => {
+    // Pin any visible dfn panel
+    queryAll(".dfn-panel.on, .dfn-panel.activated").forEach(el=>positionDfnPanel(el));
+});
+
+function genAllDfnPanels() {
+    for(const panelData of Object.values(dfnPanelData)) {
+        const dfnID = panelData.dfnID;
+        const dfn = document.getElementById(dfnID);
+        if(!dfn) {
+            console.log(`Can't find dfn#${dfnID}.`, panelData);
+            continue;
+        }
+        dfn.panelData = panelData;
+        insertDfnPopupAction(dfn);
+    }
+}
+
+function genDfnPanel(dfn, { dfnID, url, dfnText, refSections, external }) {
+    const dfnPanel = mk.aside({
+        class: "dfn-panel on",
+        id: `infopanel-for-${dfnID}`,
+        "data-for": dfnID,
+        "aria-labelled-by":`infopaneltitle-for-${dfnID}`,
+        },
+        mk.span({id:`infopaneltitle-for-${dfnID}`, style:"display:none"},
+            `Info about the '${dfnText}' ${external?"external":""} reference.`),
+        mk.a({href:url, class:"dfn-link"}, url),
+        refSections.length == 0 ? [] :
+            mk.b({}, "Referenced in:"),
+            mk.ul({},
+                ...refSections.map(section=>
+                    mk.li({},
+                        ...section.refs.map((ref, refI)=>
+                            [
+                                mk.a({ href: `#${ref.id}` },
+                                    (refI == 0) ? section.title : `(${refI + 1})`
+                                ),
+                                " ",
+                            ]
+                        ),
+                    ),
+                ),
+            ),
+        genLinkingSyntaxes(dfn),
+    );
+
+    dfnPanel.addEventListener('click', (event) => {
+        if (event.target.nodeName == 'A') {
+            scrollToTargetAndHighlight(event);
+            pinDfnPanel(dfnPanel);
+        }
+        event.stopPropagation();
+        refocusOnTarget(event);
+    });
+    dfnPanel.addEventListener('keydown', (event) => {
+        if(event.keyCode == 27) { // Escape key
+            hideDfnPanel({dfnPanel});
+            event.stopPropagation();
+            event.preventDefault();
+        }
+    });
+
+    dfnPanel.dfn = dfn;
+    dfn.dfnPanel = dfnPanel;
+    return dfnPanel;
+}
+
+
+
+function hideAllDfnPanels() {
+    // Delete the currently-active dfn panel.
+    queryAll(".dfn-panel").forEach(dfnPanel=>hideDfnPanel({dfnPanel}));
+}
+
+function showDfnPanel(dfn) {
+    hideAllDfnPanels(); // Only display one at a time.
+
+    dfn.setAttribute("aria-expanded", "true");
+
+    const dfnPanel = genDfnPanel(dfn, dfn.panelData);
+
+    // Give the dfn a unique tabindex, and then
+    // give all the tabbable panel bits successive indexes.
+    let tabIndex = 100;
+    dfn.tabIndex = tabIndex++;
+    const tabbable = dfnPanel.querySelectorAll(":is(a, button)");
+    for (const el of tabbable) {
+        el.tabIndex = tabIndex++;
+    }
+
+    append(document.body, dfnPanel);
+    positionDfnPanel(dfnPanel);
+}
+
+function positionDfnPanel(dfnPanel) {
+    const dfn = dfnPanel.dfn;
+    const dfnPos = getBounds(dfn);
+    dfnPanel.style.top = dfnPos.bottom + "px";
+    dfnPanel.style.left = dfnPos.left + "px";
+
+    const panelPos = dfnPanel.getBoundingClientRect();
+    const panelMargin = 8;
+    const maxRight = document.body.parentNode.clientWidth - panelMargin;
+    if (panelPos.right > maxRight) {
+        const overflowAmount = panelPos.right - maxRight;
+        const newLeft = Math.max(panelMargin, dfnPos.left - overflowAmount);
+        dfnPanel.style.left = newLeft + "px";
+    }
+}
+
+function pinDfnPanel(dfnPanel) {
+    // Switch it to "activated" state, which pins it.
+    dfnPanel.classList.add("activated");
+    dfnPanel.style.position = "fixed";
+    dfnPanel.style.left = null;
+    dfnPanel.style.top = null;
+}
+
+function hideDfnPanel({dfn, dfnPanel}) {
+    if(!dfnPanel) dfnPanel = dfn.dfnPanel;
+    if(!dfn) dfn = dfnPanel.dfn;
+    dfn.dfnPanel = undefined;
+    dfnPanel.dfn = undefined;
+    dfn.setAttribute("aria-expanded", "false");
+    dfn.tabIndex = undefined;
+    dfnPanel.remove()
+}
+
+function toggleDfnPanel(dfn) {
+    if(dfn.dfnPanel) {
+        hideDfnPanel(dfn);
+    } else {
+        showDfnPanel(dfn);
+    }
+}
+
+function insertDfnPopupAction(dfn) {
+    dfn.setAttribute('role', 'button');
+    dfn.setAttribute('aria-expanded', 'false')
+    dfn.tabIndex = 0;
+    dfn.classList.add('has-dfn-panel');
+    dfn.addEventListener('click', (event) => {
+        toggleDfnPanel(dfn);
+        event.stopPropagation();
+    });
+    dfn.addEventListener('keypress', (event) => {
+        const kc = event.keyCode;
+        // 32->Space, 13->Enter
+        if(kc == 32 || kc == 13) {
+            toggleDfnPanel(dfn);
+            event.stopPropagation();
+            event.preventDefault();
+        }
+    });
+}
+
+function refocusOnTarget(event) {
+    const target = event.target;
+    setTimeout(() => {
+        // Refocus on the event.target element.
+        // This is needed after browser scrolls to the destination.
+        target.focus();
+    });
+}
+
+// TODO: shared util
+// Returns the root-level absolute position {left and top} of element.
+function getBounds(el, relativeTo=document.body) {
+    const relativeRect = relativeTo.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const top = elRect.top - relativeRect.top;
+    const left = elRect.left - relativeRect.left;
+    return {
+        top,
+        left,
+        bottom: top + elRect.height,
+        right: left + elRect.width,
+    }
+}
+
+function scrollToTargetAndHighlight(event) {
+    let hash = event.target.hash;
+    if (hash) {
+        hash = decodeURIComponent(hash.substring(1));
+        const dest = document.getElementById(hash);
+        if (dest) {
+            dest.classList.add('highlighted');
+            setTimeout(() => dest.classList.remove('highlighted'), 1000);
+        }
+    }
+}
+
+// Functions, divided by link type, that wrap an autolink's
+// contents with the appropriate outer syntax.
+// Alternately, a string naming another type they format
+// the same as.
+function needsFor(type) {
+    switch(type) {
+        case "descriptor":
+        case "value":
+        case "element-attr":
+        case "attr-value":
+        case "element-state":
+        case "method":
+        case "constructor":
+        case "argument":
+        case "attribute":
+        case "const":
+        case "dict-member":
+        case "event":
+        case "enum-value":
+        case "stringifier":
+        case "serializer":
+        case "iterator":
+        case "maplike":
+        case "setlike":
+        case "state":
+        case "mode":
+        case "context":
+        case "facet": return true;
+
+        default: return false;
+    }
+}
+function refusesFor(type) {
+    switch(type) {
+        case "property":
+        case "element":
+        case "interface":
+        case "namespace":
+        case "callback":
+        case "dictionary":
+        case "enum":
+        case "exception":
+        case "typedef":
+        case "http-header":
+        case "permission": return true;
+
+        default: return false;
+    }
+}
+function linkFormatterFromType(type) {
+    switch(type) {
+        case 'scheme':
+        case 'permission':
+        case 'dfn': return (text) => `[=${text}=]`;
+
+        case 'abstract-op': return (text) => `[\$${text}\$]`;
+
+        case 'function':
+        case 'at-rule':
+        case 'selector':
+        case 'value': return (text) => `''${text}''`;
+
+        case 'http-header': return (text) => `[:${text}:]`;
+
+        case 'interface':
+        case 'constructor':
+        case 'method':
+        case 'argument':
+        case 'attribute':
+        case 'callback':
+        case 'dictionary':
+        case 'dict-member':
+        case 'enum':
+        case 'enum-value':
+        case 'exception':
+        case 'const':
+        case 'typedef':
+        case 'stringifier':
+        case 'serializer':
+        case 'iterator':
+        case 'maplike':
+        case 'setlike':
+        case 'extended-attribute':
+        case 'event':
+        case 'idl': return (text) => `{{${text}}}`;
+
+        case 'element-state':
+        case 'element-attr':
+        case 'attr-value':
+        case 'element': return (element) => `<{${element}}>`;
+
+        case 'grammar': return (text) => `${text} (within a <pre class=prod>)`;
+
+        case 'type': return (text)=> `<<${text}>>`;
+
+        case 'descriptor':
+        case 'property': return (text) => `'${text}'`;
+
+        default: return;
+    };
+};
+
+function genLinkingSyntaxes(dfn) {
+    if(dfn.tagName != "DFN") return;
+
+    const type = dfn.getAttribute('data-dfn-type');
+    if(!type) {
+        console.log(`<dfn> doesn't have a data-dfn-type:`, dfn);
+        return [];
+    }
+
+    // Return a function that wraps link text based on the type
+    const linkFormatter = linkFormatterFromType(type);
+    if(!linkFormatter) {
+        console.log(`<dfn> has an unknown data-dfn-type:`, dfn);
+        return [];
+    }
+
+    let ltAlts;
+    if(dfn.hasAttribute('data-lt')) {
+        ltAlts = dfn.getAttribute('data-lt')
+            .split("|")
+            .map(x=>x.trim());
+    } else {
+        ltAlts = [dfn.textContent.trim()];
+    }
+    if(type == "type") {
+        // lt of "<foo>", but "foo" is the interior;
+        // <<foo/bar>> is how you write it with a for,
+        // not <foo/<bar>> or whatever.
+        for(var i = 0; i < ltAlts.length; i++) {
+            const lt = ltAlts[i];
+            const match = /<(.*)>/.exec(lt);
+            if(match) { ltAlts[i] = match[1]; }
+        }
+    }
+
+    let forAlts;
+    if(dfn.hasAttribute('data-dfn-for')) {
+        forAlts = dfn.getAttribute('data-dfn-for')
+            .split(",")
+            .map(x=>x.trim());
+    } else {
+        forAlts = [''];
+    }
+
+    let linkingSyntaxes = [];
+    if(!needsFor(type)) {
+        for(const lt of ltAlts) {
+            linkingSyntaxes.push(linkFormatter(lt));
+        }
+    }
+    if(!refusesFor(type)) {
+        for(const f of forAlts) {
+            linkingSyntaxes.push(linkFormatter(`${f}/${ltAlts[0]}`))
+        }
+    }
+    return [
+        mk.b({}, 'Possible linking syntaxes:'),
+        mk.ul({},
+            ...linkingSyntaxes.map(link => {
+                const copyLink = async () =>
+                    await navigator.clipboard.writeText(link);
+                return mk.li({},
+                    mk.div({ class: 'link-item' },
+                        mk.button({
+                            class: 'copy-icon', title: 'Copy',
+                            type: 'button',
+                            _onclick: copyLink,
+                            tabindex: 0,
+                        }, mk.span({ class: 'icon' }) ),
+                        mk.span({}, link)
+                    )
+                );
+            })
+        )
+    ];
+}
+}
+</script>
+<script>/* Boilerplate: script-ref-hints */
+"use strict";
+{
+let refsData = {
+"#accounts-validation": {"displayText":"accounts validation","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"accounts validation","type":"dfn","url":"#accounts-validation"},
+"#evt-issuance": {"displayText":"evt issuance","export":true,"for_":[],"level":"1","normative":true,"shortname":"evp","spec":"evp-1","status":"local","text":"evt issuance","type":"dfn","url":"#evt-issuance"},
+};
+
+function mkRefHint(link, ref) {
+    const linkText = link.textContent;
+    let dfnTextElements = '';
+    if (ref.displayText.toLowerCase() != linkText.toLowerCase()) {
+        // Give the original term if it's being displayed in a different way.
+        // But allow casing differences, they're insignificant.
+        dfnTextElements =
+            mk.li({},
+                mk.b({}, "Term: "),
+                mk.span({}, ref.displayText)
+            );
+    }
+    const forList = ref.for_;
+    let forListElements;
+    if(forList.length == 0) {
+        forListElements = [];
+    } else if(forList.length == 1) {
+        forListElements = mk.li({},
+            mk.b({}, "For: "),
+            mk.span({}, forList[0]),
+        );
+    } else {
+        forListElements = mk.li({},
+            mk.b({}, "For: "),
+            mk.ul({},
+                ...forList.map(forItem =>
+                    mk.li({},
+                        mk.span({}, forItem)
+                    ),
+                ),
+            ),
+        );
+    }
+    const url = ref.url;
+    const safeUrl = encodeURIComponent(url);
+    const hintPanel = mk.aside({
+        class: "ref-hint",
+        id: `ref-hint-for-${safeUrl}`,
+        "data-for": url,
+        "aria-labelled-by": `ref-hint-for-${safeUrl}`,
+    },
+        mk.ul({},
+            dfnTextElements,
+            mk.li({},
+                mk.b({}, "URL: "),
+                mk.a({ href: url, class: "ref" }, url),
+            ),
+            mk.li({},
+                mk.b({}, "Type: "),
+                mk.span({}, `${ref.type}`),
+            ),
+            mk.li({},
+                mk.b({}, "Spec: "),
+                mk.span({}, `${ref.spec ? ref.spec : ''}`),
+            ),
+            forListElements
+        ),
+    );
+    hintPanel.forLink = link;
+    setupRefHintEventListeners(link, hintPanel);
+    return hintPanel;
+}
+
+function hideAllRefHints() {
+    queryAll(".ref-hint").forEach(el=>hideRefHint(el));
+}
+
+function hideRefHint(refHint) {
+    const link = refHint.forLink;
+    link.setAttribute("aria-expanded", "false");
+    if(refHint.teardownEventListeners) {
+        refHint.teardownEventListeners();
+    }
+    refHint.remove();
+}
+
+function showRefHint(link) {
+    if(link.classList.contains("dfn-link")) return;
+    const url = link.getAttribute("href");
+    const refHintKey = link.getAttribute("data-refhint-key");
+    let key = url;
+    if(refHintKey) {
+        key = refHintKey + "_" + url;
+    }
+    const ref = refsData[key];
+    if(!ref) return;
+
+    hideAllRefHints(); // Only display one at this time.
+
+    const refHint = mkRefHint(link, ref);
+    append(document.body, refHint);
+    link.setAttribute("aria-expanded", "true");
+    positionRefHint(refHint);
+}
+
+function setupRefHintEventListeners(link, refHint) {
+    if (refHint.teardownEventListeners) return;
+    // Add event handlers to hide the refHint after the user moves away
+    // from both the link and refHint, if not hovering either within one second.
+    let timeout = null;
+    const startHidingRefHint = (event) => {
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => {
+            hideRefHint(refHint);
+        }, 1000);
+    }
+    const resetHidingRefHint = (event) => {
+        if (timeout) clearTimeout(timeout);
+        timeout = null;
+    };
+    link.addEventListener("mouseleave", startHidingRefHint);
+    link.addEventListener("mouseenter", resetHidingRefHint);
+    link.addEventListener("blur", startHidingRefHint);
+    link.addEventListener("focus", resetHidingRefHint);
+    refHint.addEventListener("mouseleave", startHidingRefHint);
+    refHint.addEventListener("mouseenter", resetHidingRefHint);
+    refHint.addEventListener("blur", startHidingRefHint);
+    refHint.addEventListener("focus", resetHidingRefHint);
+
+    refHint.teardownEventListeners = () => {
+        // remove event listeners
+        resetHidingRefHint();
+        link.removeEventListener("mouseleave", startHidingRefHint);
+        link.removeEventListener("mouseenter", resetHidingRefHint);
+        link.removeEventListener("blur", startHidingRefHint);
+        link.removeEventListener("focus", resetHidingRefHint);
+        refHint.removeEventListener("mouseleave", startHidingRefHint);
+        refHint.removeEventListener("mouseenter", resetHidingRefHint);
+        refHint.removeEventListener("blur", startHidingRefHint);
+        refHint.removeEventListener("focus", resetHidingRefHint);
+    };
+}
+
+function positionRefHint(refHint) {
+    const link = refHint.forLink;
+    const linkPos = getBounds(link);
+    refHint.style.top = linkPos.bottom + "px";
+    refHint.style.left = linkPos.left + "px";
+
+    const panelPos = refHint.getBoundingClientRect();
+    const panelMargin = 8;
+    const maxRight = document.body.parentNode.clientWidth - panelMargin;
+    if (panelPos.right > maxRight) {
+        const overflowAmount = panelPos.right - maxRight;
+        const newLeft = Math.max(panelMargin, linkPos.left - overflowAmount);
+        refHint.style.left = newLeft + "px";
+    }
+}
+
+// TODO: shared util
+// Returns the root-level absolute position {left and top} of element.
+function getBounds(el, relativeTo=document.body) {
+    const relativeRect = relativeTo.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const top = elRect.top - relativeRect.top;
+    const left = elRect.left - relativeRect.left;
+    return {
+        top,
+        left,
+        bottom: top + elRect.height,
+        right: left + elRect.width,
+    }
+}
+
+function showRefHintListener(e) {
+    // If the target isn't in a link (or is a link),
+    // just ignore it.
+    let link = e.target.closest("a");
+    if(!link) return;
+
+    // If the target is in a ref-hint panel
+    // (aka a link in the already-open one),
+    // also just ignore it.
+    if(link.closest(".ref-hint")) return;
+
+    // Otherwise, show the panel for the link.
+    showRefHint(link);
+}
+
+function hideAllHintsListener(e) {
+    // If the click is inside a ref-hint panel, ignore it.
+    if(e.target.closest(".ref-hint")) return;
+    // Otherwise, close all the current panels.
+    hideAllRefHints();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.addEventListener("mousedown", showRefHintListener);
+    document.body.addEventListener("focus", showRefHintListener);
+
+    document.body.addEventListener("click", hideAllHintsListener);
+});
+
+window.addEventListener("resize", () => {
+    // Hide any open ref hint.
+    hideAllRefHints();
+});
+}
+</script>
