@@ -8,7 +8,7 @@
 > - [x] [Intent to Prototype](https://groups.google.com/a/chromium.org/g/blink-dev/c/pWfWupaOtJw/m/MS6uaf_WAAAJ?utm_medium=email&utm_source=footer)
 > - [x] [Intent to Experiment](https://groups.google.com/a/chromium.org/g/blink-dev/c/Vp1w1u6rYjE)
 
-# Email Verification Tokens (EVTs)
+# Email Verification API
 
 TL;DR; This is a proposal to help users verify email addresses (e.g. during account creation, sign-in and account recovery) by providing cryptographic proof of ownership seamlessly rather than email OTPs manually.
 
