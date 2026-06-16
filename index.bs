@@ -1,12 +1,12 @@
 <pre class="metadata">
-Title: Email Verification Tokens
+Title: Email Verification API
 Shortname: evp
 Level: 1
 Status: UD
 Group: wicg
-URL: https://samuelgoto.github.io/email-verification-protocol/
-Repository: WICG/email-verification-protocol
-!Authors: Sam Goto, Google https://google.com, goto@google.com
+URL: https://github.com/WICG/email-verification
+Repository: WICG/email-verification
+!Authors: Sam Goto, Google, goto@google.com
 !Authors: Dick Hardt, Hellō, dick.hardt@gmail.com
 Abstract: This document defines the Email Verification Protocol (EVP), which enables web applications to verify that a user controls an email address without sending a verification email. The protocol uses a three-party model where the browser intermediates between the verifier and an issuer, providing both improved user experience and privacy protection.
 Markup Shorthands: markdown yes
