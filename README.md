@@ -96,6 +96,7 @@ Set-Login: logged-in
 
 This bit is then later used in the [accounts request](#33-accounts-request) step.
 
+> It is also possible to support pushing (in addition to pulling) accounts to the browser with the Login Status API with [this](https://github.com/fedidcg/LightweightFedCM#fedcm-accounts-push) proposal. While this hasn't been implemented yet, it is supported by an extension to the Login Status API.
 
 > Calling the Login Status API also allows the browser to discover the [`login_url`](https://w3c-fedid.github.io/FedCM/#dom-identityproviderapiconfig-login_url), which allows the browser to know how to programaticaly log the user in. This feature is not yet supported and is noted as an [open question](#what-should-happen-when-users-are-logged-out-of-the-email-provider--issuer).
 
