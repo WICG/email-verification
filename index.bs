@@ -123,7 +123,7 @@ When the user selects an email address |email| from the user agent's autofill su
     *   `inputElement`: |emailInput|
     *   `token`: null
 6.  In the background, perform the following steps:
-    1.  Let |issuer| be the result of performing the [issuer discovery](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery) steps defined in [[!EVP-Protocol]] on |email|.
+    1.  Let |issuer| be the result of performing the [issuer discovery](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-issuer-discovery) steps defined in [[!EVP-Protocol]] on |email|.
     2.  If |issuer| is null, terminate these steps.
     3.  Let |accountMatch| be the result of performing [=Accounts Validation=] on |email| with |issuer|.
     4.  If |accountMatch| is false, terminate these steps.
@@ -133,7 +133,7 @@ When the user selects an email address |email| from the user agent's autofill su
     8.  If |evtResult| is null, terminate these steps.
     9.  Let |evt| be |evtResult|[0].
     10. Let |keyPair| be |evtResult|[1].
-    11. Let |kbEvt| be the result of performing the [key-binding creation](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation) steps defined in [[!EVP-Protocol]] on |evt| using the private key component of |keyPair|, with |nonce| and the origin of the document.
+    11. Let |kbEvt| be the result of performing the [key-binding creation](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-kb-creation) steps defined in [[!EVP-Protocol]] on |evt| using the private key component of |keyPair|, with |nonce| and the origin of the document.
     12. Let |state| be |form|'s EVP state.
     13. If |state| is not null and |state|'s `email` is case-insensitively equal to |email|:
         1.  Set |state|'s `token` to |kbEvt|.
@@ -207,7 +207,7 @@ Given an email address |email| and an issuer domain |issuer|, the user agent MUS
 
 When a verifier receives a submitted form containing an email address |email| and a bound token |boundToken| (from the input field with `autocomplete="email-verification-token"`):
 
-1.  Perform the [token verification](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification) steps defined in [[!EVP-Protocol]] on |boundToken| for the verifier's origin and the expected nonce.
+1.  Perform the [token verification](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-token-verification) steps defined in [[!EVP-Protocol]] on |boundToken| for the verifier's origin and the expected nonce.
 2.  If the verification fails, fail verification.
 3.  Let |verifiedEmail| be the email address extracted from the verified token.
 4.  If |verifiedEmail| is not case-insensitively equal to |email|, fail verification.
@@ -246,7 +246,7 @@ Furthermore, the issuer MUST match the email domain (unless delegated explicitly
 {
   "EVP-Protocol": {
     "authors": [ "Dick Hardt", "Sam Goto" ],
-    "href": "https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html",
+    "href": "https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html",
     "title": "Email Verification Protocol (EVP) Backend",
     "status": "Internet-Draft",
     "publisher": "IETF"

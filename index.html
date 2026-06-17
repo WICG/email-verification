@@ -720,7 +720,7 @@ c-[il] { color: #000000 } /* Literal.Number.Integer.Long */
   <div class="head">
    <h1 class="no-ref p-name" id="title">Email Verification API</h1>
    <p id="w3c-state"><a href="https://www.w3.org/standards/types/#UD">Unofficial Proposal Draft</a>,
-    <time class="dt-updated" datetime="2026-06-16">16 June 2026</time></p>
+    <time class="dt-updated" datetime="2026-06-17">17 June 2026</time></p>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -931,7 +931,7 @@ Do you want to share a verified token for <code>user@email.example</code> with <
      <p>In the background, perform the following steps:</p>
      <ol>
       <li data-md>
-       <p>Let <var>issuer</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery">issuer discovery</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>email</var>.</p>
+       <p>Let <var>issuer</var> be the result of performing the <a href="https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-issuer-discovery">issuer discovery</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>email</var>.</p>
       <li data-md>
        <p>If <var>issuer</var> is null, terminate these steps.</p>
       <li data-md>
@@ -951,7 +951,7 @@ Do you want to share a verified token for <code>user@email.example</code> with <
       <li data-md>
        <p>Let <var>keyPair</var> be <var>evtResult</var>[1].</p>
       <li data-md>
-       <p>Let <var>kbEvt</var> be the result of performing the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation">key-binding creation</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>evt</var> using the private key component of <var>keyPair</var>, with <var>nonce</var> and the origin of the document.</p>
+       <p>Let <var>kbEvt</var> be the result of performing the <a href="https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-kb-creation">key-binding creation</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>evt</var> using the private key component of <var>keyPair</var>, with <var>nonce</var> and the origin of the document.</p>
       <li data-md>
        <p>Let <var>state</var> be <var>form</var>’s EVP state.</p>
       <li data-md>
@@ -1089,7 +1089,7 @@ Do you want to share a verified token for <code>user@email.example</code> with <
    <p>When a verifier receives a submitted form containing an email address <var>email</var> and a bound token <var>boundToken</var> (from the input field with <code>autocomplete="email-verification-token"</code>):</p>
    <ol>
     <li data-md>
-     <p>Perform the <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification">token verification</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>boundToken</var> for the verifier’s origin and the expected nonce.</p>
+     <p>Perform the <a href="https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-token-verification">token verification</a> steps defined in <a data-link-type="biblio" href="#biblio-evp-protocol" title="Email Verification Protocol (EVP) Backend">[EVP-Protocol]</a> on <var>boundToken</var> for the verifier’s origin and the expected nonce.</p>
     <li data-md>
      <p>If the verification fails, fail verification.</p>
     <li data-md>
@@ -1189,7 +1189,7 @@ Furthermore, the issuer MUST match the email domain (unless delegated explicitly
   <h3 class="heading no-num no-ref settled" id="normative"><span class="content">Normative References</span><a class="self-link" href="#normative"></a></h3>
   <dl>
    <dt id="biblio-evp-protocol">[EVP-Protocol]
-   <dd>Dick Hardt; Sam Goto. <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html"><cite>Email Verification Protocol (EVP) Backend</cite></a>. Internet-Draft. URL: <a href="https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html">https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html</a>
+   <dd>Dick Hardt; Sam Goto. <a href="https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html"><cite>Email Verification Protocol (EVP) Backend</cite></a>. Internet-Draft. URL: <a href="https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html">https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html</a>
    <dt id="biblio-fedcm">[FEDCM]
    <dd>Nicolas Pena Moreno. <a href="https://w3c-fedid.github.io/FedCM/"><cite>Federated Credential Management API</cite></a>. URL: <a href="https://w3c-fedid.github.io/FedCM/">https://w3c-fedid.github.io/FedCM/</a>
    <dt id="biblio-login-status">[LOGIN-STATUS]

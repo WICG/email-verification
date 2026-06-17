@@ -122,13 +122,13 @@ When the website exposes this extra `<input>` requesting an `autocomplete="email
 
 ## 3.2 Issuer Discovery
 
-When the user selects an email in the input box, the browser presupposes that the email provider exposes itself as an EVP-compatible provider ahead of time by implementing the [EVP protocol](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html).
+When the user selects an email in the input box, the browser presupposes that the email provider exposes itself as an EVP-compatible provider ahead of time by implementing the [EVP protocol](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html).
 
 <!--
 <img width="1280" height="960" alt="Email Verification Tokens (EVTs) (4)" src="https://github.com/user-attachments/assets/eb27296a-19eb-4b45-9591-5f00dfd469aa" />
 -->
 
-The browser starts by [discovering the issuer](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-issuer-discovery) associated with the email address  (which can, but doesn’t have to, be same-site with the email provider, e.g. allows [gmail.com](http://gmail.com) to delegate EVTs to [accounts.google.com](http://accounts.google.com)), via a DNS TXT record set ahead of time:
+The browser starts by [discovering the issuer](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-issuer-discovery) associated with the email address  (which can, but doesn’t have to, be same-site with the email provider, e.g. allows [gmail.com](http://gmail.com) to delegate EVTs to [accounts.google.com](http://accounts.google.com)), via a DNS TXT record set ahead of time:
 
 ```
 _email-verification.email-domain.example   TXT   iss=issuer.example
@@ -180,7 +180,7 @@ Once the browser has discovered the issuer and knows that the user is logged in 
 
 ## 3.5 Issuance Request
 
-Once the issuer is discovered, the [issuer metadata](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#section-3.2) can be fetched:
+Once the issuer is discovered, the [issuer metadata](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#section-3.2) can be fetched:
 
 ```
 https://{issuer}/.well-known/email-verification
@@ -216,11 +216,11 @@ Set-Cookie: session=...; Secure; HttpOnly; SameSite=None
 
 ## 3.6 KB Creation
 
-Once issued, the browser [binds the nonce](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-kb-creation) and the audience to the EVT (binding both the origin of the website that the EVT is presented to as well as the dynamically generated nonce) and then.
+Once issued, the browser [binds the nonce](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-issuer-discovery#name-kb-creation) and the audience to the EVT (binding both the origin of the website that the EVT is presented to as well as the dynamically generated nonce) and then.
 
 ## 3.7 EVT+KB Verification
 
-Once the browser has a `EVT+KB` it performs a [verification](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification) to check that everything is alright before it can present it.
+Once the browser has a `EVT+KB` it performs a [verification](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-issuer-discovery#name-token-verification) to check that everything is alright before it can present it.
 
 ## 3.8 Form submission
 
@@ -232,7 +232,7 @@ Before the form gets submitted, the browser looks for an input with an `autocomp
 
 ## 4.1 EVT Verification
 
-Upon form submission, because the browser has filled the value of the `<input>` element with the EVT, the website’s server gets that value in the form submission HTTP handler and is then able to skip the manual verification step by performing an automated [token verification step](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-token-verification).
+Upon form submission, because the browser has filled the value of the `<input>` element with the EVT, the website’s server gets that value in the form submission HTTP handler and is then able to skip the manual verification step by performing an automated [token verification step](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-token-verification).
 
 # Activation Considerations
 
@@ -313,13 +313,13 @@ There are a few things that we are still unsure about:
 
 We believe that it is possible to reconcile this proposal well with directed email addresses, but this is still an area of open investigation:
 
-[https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html\#name-private-email-addresses](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-private-email-addresses)   
+[https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-private-email-addresses](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-private-email-addresses)   
 
 ## What should happen when users are logged out of the email provider / issuer?
 
 We think it is plausible that the browser might be able to help the user user login to the email provider / issuer inline in the flow. It is not quite clear to us yet how, but one of the intuitions is that we can offer a streamlined experience through passkeys:
 
-[https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html\#name-webauthn-authentication](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html#name-webauthn-authentication) 
+[https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html\#name-webauthn-authentication](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html#name-webauthn-authentication) 
 
 ## Is the permission prompt strictly necessary?
 
@@ -535,7 +535,7 @@ Second, this proposal is weaker than OTPs in that they do NOT assert that the em
 Asides from that, here are a few considerations we are working through:
 
 - Is the protocol safe?  
-  - While the protocol described is using fairly well-established parts, when we put them together, have we introduced any additional attack? [https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html](https://dickhardt.github.io/email-verification/draft-hardt-email-verification.html)   
+  - While the protocol described is using fairly well-established parts, when we put them together, have we introduced any additional attack? [https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html](https://www.ietf.org/archive/id/draft-hardt-email-verification-00.html)   
   - Are the default crypto choices sensible?  
   - The proposal relies on DNS. Is DNS sufficiently secure if we resolve them server side?  
   - Should we include the `nonce` in the form submission?  
