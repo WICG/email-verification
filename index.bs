@@ -2,7 +2,7 @@
 Title: Email Verification API
 Shortname: evp
 Level: 1
-Status: UD
+Status: CG-DRAFT
 Group: wicg
 URL: https://github.com/WICG/email-verification
 Repository: WICG/email-verification
