@@ -6,6 +6,8 @@ Status: CG-DRAFT
 Group: wicg
 URL: https://github.com/WICG/email-verification
 Repository: WICG/email-verification
+Editor: Sam Goto, Google, goto@google.com
+Editor: Brandon Maslen, Microsoft, brandm@microsoft.com
 !Authors: Sam Goto, Google, goto@google.com
 !Authors: Dick Hardt, Hellō, dick.hardt@gmail.com
 Abstract: This document defines the Email Verification Protocol (EVP), which enables web applications to verify that a user controls an email address without sending a verification email. The protocol uses a three-party model where the browser intermediates between the verifier and an issuer, providing both improved user experience and privacy protection.
