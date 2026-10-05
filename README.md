@@ -12,6 +12,10 @@
 
 TL;DR; This is a proposal to help users verify email addresses (e.g. during account creation, sign-in and account recovery) by providing cryptographic proof of ownership seamlessly rather than email OTPs manually.
 
+# Implementations
+
+- [evp-js](https://github.com/aspect-evp/evp-js) — An experimental TypeScript implementation of the Email Verification Protocol draft, including core, issuer, verifier, and CLI packages.
+
 # The Problem
 
 As of 2025, 95% of the [50 most visited websites](https://en.wikipedia.org/wiki/List_of_most-visited_websites) support creating accounts and logging in with emails.
